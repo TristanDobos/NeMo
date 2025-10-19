@@ -1,5 +1,19 @@
 #!bin/bash
 
+init_conda() {
+ __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+ if [ $? -eq 0 ]; then
+     eval "$__conda_setup"
+ else
+     if [ -f "/mnt/matylda6/xdobos00/miniconda/etc/profile.d/conda.sh" ]; then
+         . "/mnt/matylda6/xdobos00/miniconda/etc/profile.d/conda.sh"
+     else
+         export PATH="/mnt/matylda6/xdobos00/miniconda/bin:$PATH"
+     fi
+ fi
+ unset __conda_setup
+}
+
 init_conda
 conda activate nemo
 cd /mnt/matylda6/xdobos00/Nemo/examples/tts
