@@ -1,0 +1,346 @@
+name: nanocodec_12p5fps_22050
+
+sample_rate: 22050
+win_length: 1024
+hop_length: 256
+train_n_samples: 8192 # ~0.37 seconds
+# The product of the down_sample_rates and up_sample_rates should match the hop_length.
+# For example 2 * 2 * 8 * 8 = 256.
+down_sample_rates: [2, 2, 8, 8]
+up_sample_rates: [8, 8, 2, 2]
+
+num_codebooks: 8
+encoder_out_dim: 32
+
+train_ds_meta:
+  manifest_path: /mnt/matylda6/xdobos00/NeMo/scripts/dataset_processing/data-100/librispeech_22k_train.json
+  audio_dir: .
+  sample_weight: 1.0
+  audio_tar_filepaths: []
+val_ds_meta:
+  manifest_path: /mnt/matylda6/xdobos00/NeMo/scripts/dataset_processing/data-100/librispeech_22k_val.json
+  audio_dir: .
+  sample_weight: 1.0
+  audio_tar_filepaths: []
+test_ds_meta:
+  manifest_path: /mnt/matylda6/xdobos00/NeMo/scripts/dataset_processing/data-100/librispeech_22k_test.json
+  audio_dir: .
+  sample_weight: 1.0
+  audio_tar_filepaths: []
+
+# trainer:
+#   accelerator: gpu
+#   devices: 2
+#   strategy: ddp_find_unused_parameters_false
+#   precision: 16-mixed
+#   gradient_clip_val: 1.0
+#   max_steps: 400000
+#   log_every_n_steps: 25
+#   val_check_interval: 1000
+#   num_sanity_val_steps: 0
+#   accumulate_grad_batches: 1
+#   enable_checkpointing: false
+#   benchmark: false
+#   deterministic: false
+#   logger: false
+
+trainer:
+  devices: 1
+  num_nodes: 1
+  strategy: auto
+  # strategy: ddp_find_unused_parameters_true
+  precision: 16
+  max_epochs: 200
+  accumulate_grad_batches: 1
+  enable_checkpointing: False # Provided by exp_manager
+  logger: false # Provided by exp_manager
+  log_every_n_steps: 100
+  check_val_every_n_epoch: 10
+  benchmark: false
+
+exp_manager:
+  exp_dir: /mnt/matylda6/xdobos00/NeMo/examples/tts/exp/nanocodec
+  name: nanocodec_12p5fps_22050
+  create_wandb_logger: false
+  wandb_logger_kwargs:
+    project: nanocodec
+    name: 12p5fps_1p78kbps
+  resume_if_exists: true
+  create_checkpoint_callback: true
+  resume_ignore_no_checkpoint: true
+  checkpoint_callback_params:
+    save_top_k: 10
+    monitor: val/mel_stft_l1
+    mode: min
+    every_n_train_steps: 5000
+    every_n_epochs: null
+    train_time_interval: null
+    save_on_train_epoch_end: false
+    save_last: true
+
+model:
+  sample_rate: 22050
+  max_epochs: 200
+  samples_per_frame: 1920
+
+  mel_loss_l1_scale: 10.0
+  mel_loss_l2_scale: 0.0
+  stft_loss_scale: 10.0
+  time_domain_loss_scale: 0.0
+  commit_loss_scale: 0.0
+  # evaluate_full_audio: false
+  # Probability of updating the discriminator during each training step
+  # For example, update the discriminator 1/2 times (1 update for every 2 batches)
+  disc_updates_per_period: 1
+  disc_update_period: 2
+
+  # All resolutions for mel reconstruction loss, ordered [num_fft, hop_length, window_length]
+  loss_resolutions:
+    [
+      [32, 8, 32],
+      [64, 16, 64],
+      [128, 32, 128],
+      [256, 64, 256],
+      [512, 128, 512],
+      [1024, 256, 1024],
+    ]
+  mel_loss_dims: [5, 10, 20, 40, 80, 160]
+  mel_loss_log_guard: 1.0
+  stft_loss_log_guard: 1.0
+  feature_loss_type: absolute
+
+  audio_encoder:
+    _target_: nemo.collections.tts.modules.audio_codec_modules.HiFiGANEncoder
+    down_sample_rates: ${down_sample_rates}
+    encoded_dim: ${encoder_out_dim}
+    base_channels: 48
+    activation: "lrelu"
+
+  audio_decoder:
+    _target_: nemo.collections.tts.modules.audio_codec_modules.HiFiGANDecoder
+    up_sample_rates: ${up_sample_rates}
+    input_dim: ${encoder_out_dim}
+    base_channels: 768
+    activation: "half_snake"
+    output_activation: "clamp"
+
+  vector_quantizer:
+    _target_: nemo.collections.tts.modules.audio_codec_modules.GroupFiniteScalarQuantizer
+    num_groups: ${num_codebooks}
+    num_levels_per_group: [8, 5, 5, 5]
+
+  discriminator:
+    _target_: nemo.collections.tts.modules.audio_codec_modules.Discriminator
+    discriminators:
+      - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiPeriodDiscriminator
+      - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiResolutionDiscriminatorSTFT
+        resolutions: [[512, 128, 512], [1024, 256, 1024]]
+        stft_bands:
+          [[0.0, 0.1], [0.1, 0.25], [0.25, 0.5], [0.5, 0.75], [0.75, 1.0]]
+
+  generator_loss:
+    _target_: nemo.collections.tts.losses.audio_codec_loss.GeneratorSquaredLoss
+
+  discriminator_loss:
+    _target_: nemo.collections.tts.losses.audio_codec_loss.DiscriminatorSquaredLoss
+
+  # optim:
+  #   _target_: torch.optim.Adam
+  #   lr: 2e-4
+  #   betas: [0.8, 0.99]
+
+  #   sched:
+  #     name: ExponentialLR
+  #     gamma: 0.998
+
+  # -----------------------------
+  # CODEC CORE
+  # -----------------------------
+  codec:
+    frame_rate: 12.5 # NanoCodec target FPS
+    embedding_dim: 52 # matches 13 codebooks × 4 dims/code (projected)
+    # Encoder (feature extractor → quantizer input)
+    encoder:
+      _target_: nemo.collections.tts.modules.audio_codec.AudioEncoder
+      in_channels: 1
+      hidden_channels: 256
+      layers: 12
+      kernel_size: 7
+      stride: 2
+      norm: weight_norm
+      activation: silu
+      dropout: 0.0
+    # FSQ quantizer settings (NanoCodec-style)
+    quantizer:
+      _target_: nemo.collections.tts.modules.audio_codec.quantizers.FSQQuantizer
+      num_codebooks: 13
+      code_dim: 4
+      codes_per_codebook: 2016
+      commit_loss_weight: 0.25
+      entropy_reg_weight: 0.0
+      ema_decay: 0.0 # FSQ is non-EMA; leave 0
+      stochastic_rounding: false
+    # Causal neural decoder (HiFi-GAN-style)
+    decoder:
+      _target_: nemo.collections.tts.modules.audio_codec.HiFiGANDecoder
+      causal: true
+      hidden_channels: 512
+      upsample_initial_channel: 1024
+      upsample_rates: [3, 3, 7, 4, 7] # product ~ 1764 hop at 22.05k → 12.5 fps (3*3*7*4*7=1764)
+      upsample_kernel_sizes: [7, 7, 15, 8, 15]
+      resblock_kernel_sizes: [3, 5, 7]
+      resblock_dilation_sizes: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+      use_weight_norm: true
+      activation: leaky_relu
+      lrelu_slope: 0.1
+
+  # -----------------------------
+  # DISCRIMINATORS & LOSSES
+  # -----------------------------
+  discriminators:
+    mpd: # Multi-Period Discriminator
+      _target_: nemo.collections.tts.modules.submodules.mpd.MPD
+      periods: [2, 3, 5, 7, 11]
+      use_weight_norm: true
+    msstft: # Multi-Scale STFT Discriminator
+      _target_: nemo.collections.tts.modules.submodules.msstft.MSSTFTDiscriminator
+      fft_sizes: [512, 1024, 2048]
+      hop_sizes: [128, 256, 512]
+      win_lengths: [512, 1024, 2048]
+      num_scales: 3
+    wavlm: # Optional pretrained speech-aware discriminator
+      _target_: nemo.collections.tts.modules.audio_codec.discriminators.WavLMDiscriminator
+      enabled: true
+      freeze_backbone: true
+      backbone_sr: 16000 # internal SR for WavLM features
+
+  losses:
+    # Generator losses
+    mel_stft:
+      weight: 45.0
+      n_mels: 80
+      n_fft: 1024
+      hop_length: 256
+      win_length: 1024
+    stft_l1:
+      weight: 10.0
+      fft_sizes: [512, 1024, 2048]
+      hop_sizes: [128, 256, 512]
+      win_lengths: [512, 1024, 2048]
+    feature_matching:
+      weight: 10.0
+    gan:
+      weight: 2.0 # squared-GAN by default in these modules
+    commitment:
+      weight: 0.25 # mirrors quantizer.commit_loss_weight
+    # Optional ASR perceptual proxy (CER proxy) — enable if you wire an ASR head
+    asr_proxy:
+      enabled: false
+      weight: 0.0
+
+  # -----------------------------
+  # OPTIMIZATION
+  # -----------------------------
+  optim:
+    _target_: torch.optim.Adam
+    name: adamw
+    lr: 0.0002
+    betas: [0.8, 0.99]
+    eps: 1.0e-8
+    weight_decay: 0.01
+    sched:
+      name: cosine
+      warmup_steps: 10000
+      min_lr: 5.0e-6
+
+  # -----------------------------
+  # DATASETS
+  # -----------------------------
+  train_ds:
+    dataset:
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      dataset_meta:
+        # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+        librispeech:
+          manifest_path: ${train_ds_meta.manifest_path}
+          audio_dir: ${train_ds_meta.audio_dir}
+          sample_weight: ${train_ds_meta.sample_weight}
+          audio_tar_filepaths: ${train_ds_meta.audio_tar_filepaths}
+      sample_rate: 22050
+      min_duration: 0.3
+      max_duration: 30.0
+      # augment:
+      #   enabled: true
+      #   gain_db: { min: -6.0, max: 6.0 }
+      #   colored_noise_snr_db: { p: 0.1, min_snr: 15.0, max_snr: 30.0 }
+    dataloader_params:
+      batch_size: 32
+      num_workers: 8
+      shuffle: true
+      drop_last: true
+      pin_memory: true
+      prefetch_factor: 4
+      persistent_workers: true
+
+  validation_ds:
+    dataset:
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      dataset_meta:
+        # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+        librispeech:
+          manifest_path: ${val_ds_meta.manifest_path}
+          audio_dir: ${val_ds_meta.audio_dir}
+          sample_weight: ${val_ds_meta.sample_weight}
+          audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
+      sample_rate: 22050
+      min_duration: 0.3
+      max_duration: 60.0
+      # evaluate_full_audio: true   # full clips for val
+    dataloader_params:
+      batch_size: 16
+      num_workers: 4
+      shuffle: false
+      drop_last: false
+      pin_memory: true
+
+  test_ds:
+    dataset:
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      dataset_meta:
+        librispeech:
+          # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+          manifest_path: ${test_ds_meta.manifest_path}
+          audio_dir: ${test_ds_meta.audio_dir}
+          sample_weight: ${test_ds_meta.sample_weight}
+          audio_tar_filepaths: ${test_ds_meta.audio_tar_filepaths}
+      sample_rate: 22050
+      min_duration: 0.3
+      max_duration: 60.0
+      # evaluate_full_audio: true
+    dataloader_params:
+      batch_size: 8
+      num_workers: 4
+      shuffle: false
+      drop_last: false
+      pin_memory: true
+
+  # -----------------------------
+  # LOGGING / MONITORING
+  # -----------------------------
+  logging:
+    log_audio_examples: true
+    num_examples: 4
+    example_seconds: 3.0
+    log_code_usage_stats: true
+
+  # -----------------------------
+  # MIXED PRECISION & AMP
+  # -----------------------------
+  amp_o2: false # kept false for stability with discriminators
+  find_unused_parameters: false
+
+# -----------------------------
+# INSTANTIATION TARGET
+# -----------------------------
+target:
+  _target_: nemo.collections.tts.models.audio_codec.AudioCodecModel
