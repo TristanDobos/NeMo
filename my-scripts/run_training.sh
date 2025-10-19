@@ -61,5 +61,5 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Run the Python command
-echo "Running: python ./audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-python ./audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME"
+echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
+python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME"
