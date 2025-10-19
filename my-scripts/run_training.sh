@@ -16,7 +16,6 @@ init_conda() {
 
 init_conda
 conda activate nemo
-cd /mnt/matylda6/xdobos00/Nemo/examples/tts
 
 # Default values
 CONFIG_PATH="conf/audio_codec"
