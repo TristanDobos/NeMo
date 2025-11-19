@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
