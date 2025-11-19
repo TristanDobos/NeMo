@@ -92,7 +92,7 @@ model:
     dataloader_params:
       batch_size: ${batch_size}
       drop_last: true
-      num_workers: 4
+      num_workers: 2
 
   validation_ds:
     dataset:
