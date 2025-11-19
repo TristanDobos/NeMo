@@ -92,7 +92,7 @@ model:
     dataloader_params:
       batch_size: ${batch_size}
       drop_last: true
-      num_workers: 2
+      num_workers: 0
 
   validation_ds:
     dataset:
@@ -112,7 +112,7 @@ model:
 
     dataloader_params:
       batch_size: 4
-      num_workers: 2
+      num_workers: 0
 
   # Configures how audio samples are generated and saved during training.
   # Remove this section to disable logging.
@@ -145,7 +145,7 @@ model:
 
     dataloader_params:
       batch_size: 4
-      num_workers: 2
+      num_workers: 0
 
   audio_encoder:
     _target_: nemo.collections.tts.modules.audio_codec_modules.HiFiGANEncoder
