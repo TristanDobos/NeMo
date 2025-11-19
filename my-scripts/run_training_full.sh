@@ -67,21 +67,21 @@ python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$C
 
 
 
-for this:
-/mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/dev-other-processed
-there is this:
-/mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/manifests/dev-other-manifest.jsonl
+# for this:
+# /mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/dev-other-processed
+# there is this:
+# /mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/manifests/dev-other-manifest.jsonl
 
-/mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/manifests/
-dev-clean-manifest.jsonl  dev-other-manifest.jsonl  test-clean-manifest.jsonl  test-other-manifest.jsonl  train-clean-100-manifest.jsonl  train-clean-360-manifest.jsonl  train-other-500-manifest.jsonl
+# /mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/manifests/
+# dev-clean-manifest.jsonl  dev-other-manifest.jsonl  test-clean-manifest.jsonl  test-other-manifest.jsonl  train-clean-100-manifest.jsonl  train-clean-360-manifest.jsonl  train-other-500-manifest.jsonl
 
-# make the file of 
+# # make the file of 
 
-mkdir test
-rsync -ah --info=progress2 test-clean-processed/ test/
-rsync -ah --info=progress2 test-other-processed/ test/
+# mkdir test
+# rsync -ah --info=progress2 test-clean-processed/ test/
+# rsync -ah --info=progress2 test-other-processed/ test/
 
 
-cd /mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/manifests/
-cat  train-clean-100-manifest.jsonl  train-clean-360-manifest.jsonl  train-other-500-manifest.jsonl > train_960h_manifest.jsonl
-cat test-clean-manifest.jsonl  test-other-manifest.jsonl  > test_manifest.jsonl
+# cd /mnt/matylda6/xdobos00/datasets/LibriSpeech/LibriSpeech/manifests/
+# cat  train-clean-100-manifest.jsonl  train-clean-360-manifest.jsonl  train-other-500-manifest.jsonl > train_960h_manifest.jsonl
+# cat test-clean-manifest.jsonl  test-other-manifest.jsonl  > test_manifest.jsonl
