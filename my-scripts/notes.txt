@@ -19,3 +19,16 @@ cat test-clean-manifest.jsonl  test-other-manifest.jsonl  > test_manifest.jsonl
 
 
 qlogin -l gpu=1,ram_free=20,mem_free=20G,matylda6=0.625,gpu_ram=40G -q all.q@supergpu*
+
+qlogin -l gpu=2,ram_free=20,mem_free=20G,matylda6=0.625,gpu_ram=20G -q all.q@supergpu*
+/mnt/matylda6/xdobos00/NeMo/my-scripts
+xdobos00@supergpu7: /mnt/matylda6/xdobos00/NeMo/my-scripts$ ls
+notes.txt  run_training_100.sh  run_training_full.sh
+
+sh /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_100.sh 
+
+qlogin -l gpu=1,gpu_ram=30G,ram_free=30G,mem_free=30G -q all.q@supergpu*
+
+qlogin -l gpu=2,ram_free=20,mem_free=20G,matylda6=0.625,gpu_ram=20G -q all.q@supergpu*
+
+ ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
