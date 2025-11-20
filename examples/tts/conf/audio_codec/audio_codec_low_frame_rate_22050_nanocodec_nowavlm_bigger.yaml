@@ -218,11 +218,11 @@ exp_manager:
   name: ${name}
   create_tensorboard_logger: true
   create_checkpoint_callback: true
-  create_wandb_logger: false
+  create_wandb_logger: true
   wandb_logger_kwargs:
-    name: testing-name
-    project: new-testing
-    save_dir: ./wandb
+    name: first-training
+    project: full-960h-training
+    save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
     mode: min
