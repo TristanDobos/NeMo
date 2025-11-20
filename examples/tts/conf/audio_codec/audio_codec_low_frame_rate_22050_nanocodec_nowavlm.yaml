@@ -2,7 +2,7 @@
 # If you want to train model on other dataset, you can change config values according to your dataset.
 # Most dataset-specific arguments are in the head of the config file, see below.
 
-name: AudioCodec
+name: AudioCodec2
 
 max_epochs: 250
 # Adjust batch size based on GPU memory
@@ -226,7 +226,7 @@ exp_manager:
   create_wandb_logger: true
   wandb_logger_kwargs:
     mode: offline
-    name: smal-100
+    name: ${name}
     project: small-test-project
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
