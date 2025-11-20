@@ -32,3 +32,12 @@ qlogin -l gpu=1,gpu_ram=30G,ram_free=30G,mem_free=30G -q all.q@supergpu*
 qlogin -l gpu=2,ram_free=20,mem_free=20G,matylda6=0.625,gpu_ram=20G -q all.q@supergpu*
 
  ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
+
+ /Users/tristandobos/learning/nemo/NeMo/my-scripts/notes.txt
+
+ [NeMo I 2025-11-20 13:45:35 nemo_model_checkpoint:573] Checkpoint save for step 5102 started at 1763642735.2103949.
+Epoch 35: 100%|███████████████████████████████████████████████████| 100/100 [01:31<00:00,  1.09it/s, v_num=fwni, t_loss=0.207, train_step_timing in s=0.711]Epoch 35, global step 5402: 'val_loss' was not in top 3                                                                                                     
+[NeMo I 2025-11-20 13:48:45 nemo_model_checkpoint:573] Checkpoint save for step 5402 started at 1763642925.5263002.
+Epoch 37: 100%|███████████████████████████████████████████████████| 100/100 [01:32<00:00,  1.08it/s, v_num=fwni, t_loss=0.231, train_step_timing in s=0.711]Epoch 37, global step 5702: 'val_loss' was not in top 3                                                                                                     
+[NeMo I 2025-11-20 13:51:58 nemo_model_checkpoint:573] Checkpoint save for step 5702 started at 1763643118.7779152.
+Epoch 39:  85%|████████████████████████████████████████████▏       | 85/100 [01:16<00:13,  1.10it/s, v_num=fwni, t_loss=0.228, train_step_timing in s=1.070]CPU time limit exceeded
