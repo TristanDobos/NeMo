@@ -225,8 +225,9 @@ exp_manager:
   create_checkpoint_callback: true
   create_wandb_logger: false
   wandb_logger_kwargs:
-    name: null
-    project: null
+    name: smal-100
+    project: small-test-project
+    save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
     mode: min
