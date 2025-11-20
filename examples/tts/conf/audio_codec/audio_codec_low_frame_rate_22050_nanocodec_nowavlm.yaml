@@ -6,7 +6,7 @@ name: AudioCodec
 
 max_epochs: 250
 # Adjust batch size based on GPU memory
-batch_size: 16
+batch_size: 8
 # When doing weighted sampling with multiple manifests, this defines how many training steps are in an epoch.
 # If null, then weighted sampling is disabled.
 weighted_sampling_steps_per_epoch: 100
