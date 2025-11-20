@@ -124,8 +124,8 @@ model:
   # Remove this section to disable logging.
   log_config:
     log_dir: ${log_dir}
-    log_epochs: [1, 5, 7]
-    epoch_frequency: 4
+    log_epochs: [1, 2, 3, 4, 5, 6]
+    epoch_frequency: 2
     log_tensorboard: false
     log_wandb: true
 
@@ -215,7 +215,7 @@ trainer:
   enable_checkpointing: False # Provided by exp_manager
   logger: false # Provided by exp_manager
   log_every_n_steps: 100
-  check_val_every_n_epoch: 2
+  check_val_every_n_epoch: 1
   benchmark: false
 
 exp_manager:
