@@ -223,8 +223,9 @@ exp_manager:
   name: ${name}
   create_tensorboard_logger: true
   create_checkpoint_callback: true
-  create_wandb_logger: false
+  create_wandb_logger: true
   wandb_logger_kwargs:
+    mode: offline
     name: smal-100
     project: small-test-project
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
