@@ -2,14 +2,14 @@
 # If you want to train model on other dataset, you can change config values according to your dataset.
 # Most dataset-specific arguments are in the head of the config file, see below.
 
-name: AudioCodec
+name: AudioCodecV2
 
 max_epochs: 250
 # Adjust batch size based on GPU memory
 batch_size: 16
 # When doing weighted sampling with multiple manifests, this defines how many training steps are in an epoch.
 # If null, then weighted sampling is disabled.
-weighted_sampling_steps_per_epoch: 100
+weighted_sampling_steps_per_epoch: null
 
 log_dir: /mnt/matylda6/xdobos00/NeMo/scripts/dataset_processing/data-100/logs
 
@@ -233,7 +233,7 @@ exp_manager:
   create_checkpoint_callback: true
   create_wandb_logger: true
   wandb_logger_kwargs:
-    name: testing-name
+    name: ${name}
     project: new-testing
     save_dir: ./wandb
   checkpoint_callback_params:
