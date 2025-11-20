@@ -46,7 +46,7 @@ encoder_out_dim: 32
 
 model:
   max_epochs: ${max_epochs}
-  steps_per_epoch: ${weighted_sampling_steps_per_epoch}
+  # steps_per_epoch: null
 
   sample_rate: ${sample_rate}
   samples_per_frame: ${samples_per_frame}
@@ -89,7 +89,7 @@ model:
           audio_dir: ${train_ds_meta.audio_dir}
           sample_weight: ${train_ds_meta.sample_weight}
           audio_tar_filepaths: ${train_ds_meta.audio_tar_filepaths}
-      weighted_sampling_steps_per_epoch: ${weighted_sampling_steps_per_epoch}
+      weighted_sampling_steps_per_epoch: null
       sample_rate: ${sample_rate}
       n_samples: ${train_n_samples}
       min_duration: 0.4 # seconds
