@@ -127,7 +127,7 @@ model:
     log_epochs: [1, 5, 7]
     epoch_frequency: 4
     log_tensorboard: false
-    log_wandb: false
+    log_wandb: true
 
     generators:
       - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
