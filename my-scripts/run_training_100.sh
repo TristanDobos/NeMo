@@ -62,5 +62,19 @@ done
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 1)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+
+
+cd /mnt/matylda6/xdobos00/NeMo/examples/tts/conf/audio_codec/audio_codec_low_frame_rate_22050_nanocodec_nowavlm.yaml
+
+
+# hydra - konfigy hierarchicky!!!
+# conf z nanocodecu
+
+
+# submit to long queue
+# pridat to wandb
+
+# ak nie, replikovat bez low_framerate - povodne, malo by byt ovela rychlejsie
+# ma sa konvergovat do par hodin - napisat mu, ak nie bez low frame
