@@ -1,4 +1,6 @@
 #!/bin/bash
+#$ -o /mnt/matylda6/xdobos00/runs/logs/out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/err            # standard error log file
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -65,4 +67,6 @@ echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --
 export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 1)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
+/mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh
 
+qsub -N nanoCodecFullTraining -q long.q -l gpu=2,gpu_ram=20G,ram_free=20G,mem_free=20G,matylda6=1 /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh
