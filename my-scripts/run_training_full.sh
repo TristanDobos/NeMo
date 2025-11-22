@@ -67,6 +67,6 @@ echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --
 export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 1)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
-/mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh
+# /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh
 
-qsub -N nanoCodecFullTraining -q long.q -l gpu=2,gpu_ram=20G,ram_free=20G,mem_free=20G,matylda6=1 /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh
+# qsub -N nanoCodecFullTraining -q long.q -l gpu=2,gpu_ram=20G,ram_free=20G,mem_free=20G,matylda6=1 /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh
