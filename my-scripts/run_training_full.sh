@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/${JOB_NAME}.${JOB_ID}.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/${JOB_NAME}.${JOB_ID}.err            # standard error log file
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
