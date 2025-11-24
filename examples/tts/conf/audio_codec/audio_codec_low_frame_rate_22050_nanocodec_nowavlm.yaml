@@ -208,6 +208,20 @@ model:
   #     fs: ${model.sample_rate}
   #     mode: wb
 
+
+  metrics:
+    val:
+      sisdr: # output SI-SDR
+        _target_: torchmetrics.audio.ScaleInvariantSignalDistortionRatio
+      estoi: # output ESTOI
+        _target_: torchmetrics.audio.ShortTimeObjectiveIntelligibility
+        fs: ${model.sample_rate}
+        extended: true
+      pesq: # output PESQ
+        _target_: torchmetrics.audio.PerceptualEvaluationSpeechQuality
+        fs: ${model.sample_rate}
+        mode: wb
+        
   optim:
     _target_: torch.optim.Adam
     lr: 2e-4
