@@ -548,9 +548,6 @@ class AudioCodecModel(ModelPT):
             metrics["g_loss_feature"] = loss_feature
             generator_losses.append(self.feature_loss_scale * loss_feature)
 
-        if self.commit_loss_scale:
-            metrics["g_loss_commit"] = commit_loss
-            generator_losses.append(self.commit_loss_scale * commit_loss)
 
         # compute embeddings for speaker consistency loss
         if self.use_scl_loss:
@@ -609,6 +606,10 @@ class AudioCodecModel(ModelPT):
         with torch.no_grad():
             stoi_value = stoi_metric(preds=audio_gen, target=audio)
             pesq_value = pesq_metric(preds=audio_gen, target=audio)
+
+        # Convert GPU tensors -> CPU floats for logging
+        stoi_value = stoi_value.mean().detach().cpu().item()
+        pesq_value = pesq_value.mean().detach().cpu().item()
 
         # Use only main reconstruction losses for val_loss
         val_loss = loss_mel_l1 + loss_stft + loss_time_domain
