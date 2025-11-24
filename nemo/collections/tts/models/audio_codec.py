@@ -23,6 +23,7 @@ from einops import rearrange
 from hydra.utils import instantiate
 from lightning.pytorch import Trainer
 from omegaconf import DictConfig, OmegaConf, open_dict
+from nemo.collections.audio.metrics import AudioMetricWrapper, SquimMOSMetric, SquimObjectiveMetric
 
 from nemo.collections.tts.losses.audio_codec_loss import (
     FeatureMatchingLoss,
@@ -136,7 +137,10 @@ class AudioCodecModel(ModelPT):
         self.si_sdr_loss_scale = cfg.get("si_sdr_loss_scale", 0.0)
         self.time_domain_loss_fn = TimeDomainLoss()
         self.si_sdr_loss_fn = SISDRLoss()
-
+        self.stoi_metric = AudioMetricWrapper(metric=SquimObjectiveMetric(metric='stoi', fs=cfg.sample_rate))
+        self.squim_pesq =   AudioMetricWrapper(metric=SquimObjectiveMetric(metric='pesq', fs=cfg.sample_rate))
+        self.squim_si_sdr =   AudioMetricWrapper(metric=SquimObjectiveMetric(metric='si_sdr', fs=cfg.sample_rate))
+        
         # Discriminator loss setup
         self.gen_loss_scale = cfg.get("gen_loss_scale", 1.0)
         self.feature_loss_scale = cfg.get("feature_loss_scale", 1.0)
@@ -598,6 +602,8 @@ class AudioCodecModel(ModelPT):
         loss_stft = self.stft_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         loss_time_domain = self.time_domain_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         loss_si_sdr = self.si_sdr_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
+        stoi_value = self.stoi_metric(preds=audio_gen, target=audio)
+        pesq_value = self.squim_pesq(preds=audio_gen, target=audio)
 
         # Use only main reconstruction losses for val_loss
         val_loss = loss_mel_l1 + loss_stft + loss_time_domain
@@ -609,6 +615,8 @@ class AudioCodecModel(ModelPT):
             "val_loss_stft": loss_stft,
             "val_loss_time_domain": loss_time_domain,
             "val_loss_si_sdr": loss_si_sdr,
+            "val_stoi": stoi_value,
+            "val_pesq": pesq_value,
         }
         # compute embeddings for speaker consistency loss
         if self.use_scl_loss:
