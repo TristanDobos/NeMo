@@ -137,10 +137,11 @@ class AudioCodecModel(ModelPT):
         self.si_sdr_loss_scale = cfg.get("si_sdr_loss_scale", 0.0)
         self.time_domain_loss_fn = TimeDomainLoss()
         self.si_sdr_loss_fn = SISDRLoss()
-        self.stoi_metric = AudioMetricWrapper(metric=SquimObjectiveMetric(metric='stoi', fs=cfg.sample_rate))
-        self.squim_pesq =   AudioMetricWrapper(metric=SquimObjectiveMetric(metric='pesq', fs=cfg.sample_rate))
-        self.squim_si_sdr =   AudioMetricWrapper(metric=SquimObjectiveMetric(metric='si_sdr', fs=cfg.sample_rate))
-        
+        self.metrics = {
+            "stoi": SquimObjectiveMetric(metric="stoi", fs=cfg.sample_rate),
+            "pesq": SquimObjectiveMetric(metric="pesq", fs=cfg.sample_rate),
+            "si_sdr": SquimObjectiveMetric(metric="si_sdr", fs=cfg.sample_rate),
+        }
         # Discriminator loss setup
         self.gen_loss_scale = cfg.get("gen_loss_scale", 1.0)
         self.feature_loss_scale = cfg.get("feature_loss_scale", 1.0)
@@ -602,8 +603,12 @@ class AudioCodecModel(ModelPT):
         loss_stft = self.stft_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         loss_time_domain = self.time_domain_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         loss_si_sdr = self.si_sdr_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
-        stoi_value = self.stoi_metric(preds=audio_gen, target=audio)
-        pesq_value = self.squim_pesq(preds=audio_gen, target=audio)
+        stoi_metric = self.metrics["stoi"].to(self.device)
+        pesq_metric = self.metrics["pesq"].to(self.device)
+
+        with torch.no_grad():
+            stoi_value = stoi_metric(preds=audio_gen, target=audio)
+            pesq_value = pesq_metric(preds=audio_gen, target=audio)
 
         # Use only main reconstruction losses for val_loss
         val_loss = loss_mel_l1 + loss_stft + loss_time_domain
