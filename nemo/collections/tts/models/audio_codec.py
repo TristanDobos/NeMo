@@ -608,11 +608,15 @@ class AudioCodecModel(ModelPT):
             pesq_value = pesq_metric(preds=audio_gen, target=audio)
 
         # Convert GPU tensors -> CPU floats for logging
-        stoi_value = stoi_value.mean().detach().cpu().item()
-        pesq_value = pesq_value.mean().detach().cpu().item()
+        stoi_value = stoi_value.mean()
+        pesq_value = pesq_value.mean()
+
+        metrics["val_stoi"] = stoi_value.detach()
+        metrics["val_pesq"] = pesq_value.detach()
         print("hereee")
         print("stoi_value ", stoi_value)
         print("pesq_value ", pesq_value)
+        print(type(stoi_value), stoi_value)
 
         # Use only main reconstruction losses for val_loss
         val_loss = loss_mel_l1 + loss_stft + loss_time_domain
