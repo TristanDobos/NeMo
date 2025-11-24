@@ -2,7 +2,7 @@
 # If you want to train model on other dataset, you can change config values according to your dataset.
 # Most dataset-specific arguments are in the head of the config file, see below.
 
-name: NanoCodec100hWithMetrics2
+name: NanoCodec100hWithMetrics3
 
 max_epochs: 250
 # Adjust batch size based on GPU memory
@@ -208,7 +208,6 @@ model:
   #     fs: ${model.sample_rate}
   #     mode: wb
 
-
   metrics:
     val:
       sisdr: # output SI-SDR
@@ -221,7 +220,7 @@ model:
         _target_: torchmetrics.audio.PerceptualEvaluationSpeechQuality
         fs: ${model.sample_rate}
         mode: wb
-        
+
   optim:
     _target_: torch.optim.Adam
     lr: 2e-4
