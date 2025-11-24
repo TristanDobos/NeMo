@@ -2,7 +2,7 @@
 # If you want to train model on other dataset, you can change config values according to your dataset.
 # Most dataset-specific arguments are in the head of the config file, see below.
 
-name: NanoCodec100h
+name: NanoCodec100hWithMetrics
 
 max_epochs: 250
 # Adjust batch size based on GPU memory
@@ -195,6 +195,19 @@ model:
   discriminator_loss:
     _target_: nemo.collections.tts.losses.audio_codec_loss.DiscriminatorSquaredLoss
 
+  # metrics:
+  # val:
+  #   sisdr: # output SI-SDR
+  #     _target_: torchmetrics.audio.ScaleInvariantSignalDistortionRatio
+  #   estoi: # output ESTOI
+  #     _target_: torchmetrics.audio.ShortTimeObjectiveIntelligibility
+  #     fs: ${model.sample_rate}
+  #     extended: true
+  #   pesq: # output PESQ
+  #     _target_: torchmetrics.audio.PerceptualEvaluationSpeechQuality
+  #     fs: ${model.sample_rate}
+  #     mode: wb
+
   optim:
     _target_: torch.optim.Adam
     lr: 2e-4
@@ -227,7 +240,7 @@ exp_manager:
   wandb_logger_kwargs:
     mode: offline
     name: ${name}
-    project: 100h-trainings
+    project: 100h-trainings-w-add-metrics
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
