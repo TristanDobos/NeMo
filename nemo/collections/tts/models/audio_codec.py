@@ -596,70 +596,49 @@ class AudioCodecModel(ModelPT):
     def validation_step(self, batch, batch_idx):
         audio, audio_len, audio_gen, _ = self._process_batch(batch)
 
+        # reconstruction losses
         loss_mel_l1, loss_mel_l2 = self.mel_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         loss_stft = self.stft_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
-        loss_time_domain = self.time_domain_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
+        loss_time = self.time_domain_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         loss_si_sdr = self.si_sdr_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
+
+        # compute metrics
         stoi_metric = self.metrics["stoi"].to(self.device)
         pesq_metric = self.metrics["pesq"].to(self.device)
+        sisdr_metric = self.metrics["si_sdr"].to(self.device)
 
         with torch.no_grad():
-            stoi_value = stoi_metric(preds=audio_gen, target=audio)
-            pesq_value = pesq_metric(preds=audio_gen, target=audio)
+            stoi_val = stoi_metric(preds=audio_gen, target=audio).mean().detach().cpu().item()
+            pesq_val = pesq_metric(preds=audio_gen, target=audio).mean().detach().cpu().item()
+            sisdr_val = sisdr_metric(preds=audio_gen, target=audio).mean().detach().cpu().item()
 
-        # Convert GPU tensors -> CPU floats for logging
-        stoi_value = stoi_value.mean()
-        pesq_value = pesq_value.mean()
+        # final validation loss
+        val_loss = (loss_mel_l1 + loss_stft + loss_time)
 
-        metrics["val_stoi"] = stoi_value.detach()
-        metrics["val_pesq"] = pesq_value.detach()
-        print("hereee")
-        print("stoi_value ", stoi_value)
-        print("pesq_value ", pesq_value)
-        print(type(stoi_value), stoi_value)
-
-        # Use only main reconstruction losses for val_loss
-        val_loss = loss_mel_l1 + loss_stft + loss_time_domain
-
+        # ---- LOG DICT (WANDB COMPATIBLE) ----
         metrics = {
-            "val_loss": val_loss,
-            "val_loss_mel_l1": loss_mel_l1,
-            "val_loss_mel_l2": loss_mel_l2,
-            "val_loss_stft": loss_stft,
-            "val_loss_time_domain": loss_time_domain,
-            "val_loss_si_sdr": loss_si_sdr,
-            "val_stoi": stoi_value,
-            "val_pesq": pesq_value,
+            "val_loss": val_loss.detach().cpu().item(),
+            "val_loss_mel_l1": loss_mel_l1.detach().cpu().item(),
+            "val_loss_mel_l2": loss_mel_l2.detach().cpu().item(),
+            "val_loss_stft": loss_stft.detach().cpu().item(),
+            "val_loss_time_domain": loss_time.detach().cpu().item(),
+            "val_loss_si_sdr": loss_si_sdr.detach().cpu().item(),
+            "val_stoi": stoi_val,
+            "val_pesq": pesq_val,
+            "val_sisdr": sisdr_val,
         }
-        # compute embeddings for speaker consistency loss
-        if self.use_scl_loss:
-            # concate generated and GT waveforms
-            audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
 
-            # get speaker embeddings with grads
-            pred_embs = self.get_speaker_embedding(audios_batch, requires_grad=True)
+    # optional speaker consistency
+    if self.use_scl_loss:
+        audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
+        pred_embs = self.get_speaker_embedding(audios_batch, requires_grad=True)
+        gt_emb, syn_emb = torch.chunk(pred_embs, 2, dim=0)
+        loss_scl = -torch.nn.functional.cosine_similarity(gt_emb, syn_emb).mean() * self.scl_loss_scale
+        metrics["val_loss_scl"] = loss_scl.detach().cpu().item()
+        metrics["val_loss"] += metrics["val_loss_scl"]
 
-            # split generated and GT speaker embeddings
-            gt_spk_emb, syn_spk_emb = torch.chunk(pred_embs, 2, dim=0)
+    self.log_dict(metrics, on_epoch=True, sync_dist=True)
 
-            # speaker consistency loss like YourTTS paper
-            loss_scl = -1 * torch.nn.functional.cosine_similarity(gt_spk_emb, syn_spk_emb).mean() * self.scl_loss_scale
-
-            metrics["val_loss_scl"] = loss_scl
-            metrics["val_loss"] += metrics["val_loss_scl"]
-
-        if self.use_asr_consitency_loss:
-            # concate generated and GT waveforms
-            audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
-
-            logits, _ = self.phoneme_asr_model(audios_batch)
-            logits_gt, logits_pred = torch.chunk(logits, 2, dim=0)
-
-            loss_acl = torch.nn.functional.mse_loss(logits_pred, logits_gt) * self.acl_loss_scale
-            metrics["val_loss_acl"] = loss_acl
-            metrics["val_loss"] += metrics["val_loss_acl"]
-
-        self.log_dict(metrics, on_epoch=True, sync_dist=True)
 
     def get_dataset(self, cfg):
         with open_dict(cfg):
