@@ -20,6 +20,8 @@ init_conda
 conda activate nemo
 cd /mnt/matylda6/xdobos00/NeMo/examples/tts
 
+export WANDB_MODE=offline
+
 # Default values
 CONFIG_PATH="conf/audio_codec"
 CONFIG_NAME="audio_codec_low_frame_rate_22050_nanocodec_nowavlm_bigger.yaml"
@@ -64,7 +66,7 @@ done
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 1)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
 # /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_full.sh

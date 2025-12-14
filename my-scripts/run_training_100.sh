@@ -18,6 +18,8 @@ init_conda
 conda activate nemo
 cd /mnt/matylda6/xdobos00/NeMo/examples/tts
 
+export WANDB_MODE=offline
+
 # Default values
 CONFIG_PATH="conf/audio_codec"
 CONFIG_NAME="audio_codec_low_frame_rate_22050_nanocodec_nowavlm.yaml"
