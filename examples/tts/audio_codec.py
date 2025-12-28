@@ -16,6 +16,8 @@ import lightning.pytorch as pl
 from omegaconf import OmegaConf
 
 from nemo.collections.tts.models import AudioCodecModel
+import nemo.collections.tts.models.audio_codec as m
+print(m.__file__)
 from nemo.core.config import hydra_runner
 from nemo.utils import logging
 from nemo.utils.exp_manager import exp_manager
