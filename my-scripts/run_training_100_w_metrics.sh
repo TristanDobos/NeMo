@@ -15,7 +15,7 @@ init_conda() {
 }
 
 init_conda
-conda activate nemo
+conda activate nemo122
 cd /mnt/matylda6/xdobos00/NeMo/examples/tts
 
 export NEMO_DISABLE_ONE_LOGGER=1
