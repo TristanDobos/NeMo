@@ -14,6 +14,7 @@
 
 from nemo.collections.tts.models.aligner import AlignerModel
 from nemo.collections.tts.models.audio_codec import AudioCodecModel
+from nemo.collections.tts.models.audio_codec_new import AudioCodecNewModel
 from nemo.collections.tts.models.fastpitch import FastPitchModel
 from nemo.collections.tts.models.fastpitch_ssl import FastPitchModel_SSL
 from nemo.collections.tts.models.hifigan import HifiGanModel
@@ -48,4 +49,5 @@ __all__ = [
     "VitsModel",
     "WaveGlowModel",
     "SpectrogramEnhancerModel",
+    "AudioCodecNewModel"
 ]
