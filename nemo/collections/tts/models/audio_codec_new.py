@@ -703,16 +703,16 @@ class AudioCodecNewModel(ModelPT):
 
         self.log_dict(metrics, on_epoch=True, sync_dist=True)
 
-    # optional speaker consistency
-    if self.use_scl_loss:
-        audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
-        pred_embs = self.get_speaker_embedding(audios_batch, requires_grad=True)
-        gt_emb, syn_emb = torch.chunk(pred_embs, 2, dim=0)
-        loss_scl = -torch.nn.functional.cosine_similarity(gt_emb, syn_emb).mean() * self.scl_loss_scale
-        metrics["val_loss_scl"] = loss_scl.detach().cpu().item()
-        metrics["val_loss"] += metrics["val_loss_scl"]
+        # optional speaker consistency
+        if self.use_scl_loss:
+            audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
+            pred_embs = self.get_speaker_embedding(audios_batch, requires_grad=True)
+            gt_emb, syn_emb = torch.chunk(pred_embs, 2, dim=0)
+            loss_scl = -torch.nn.functional.cosine_similarity(gt_emb, syn_emb).mean() * self.scl_loss_scale
+            metrics["val_loss_scl"] = loss_scl.detach().cpu().item()
+            metrics["val_loss"] += metrics["val_loss_scl"]
 
-    self.log_dict(metrics, on_epoch=True, sync_dist=True)
+        self.log_dict(metrics, on_epoch=True, sync_dist=True)
 
 
     def get_dataset(self, cfg):
