@@ -228,10 +228,13 @@ class AudioCodecNewModel(ModelPT):
                     )
                 )
             elif name == "pesq":
-                metric = AudioMetricWrapper(
-                    PerceptualEvaluationSpeechQuality(
-                        fs=self.sample_rate, mode="wb"
+                if self.sample_rate not in [8000, 16000]:
+                    logging.warning(
+                        f"Skipping PESQ: unsupported sample rate {self.sample_rate}"
                     )
+                    continue
+                metric = AudioMetricWrapper(
+                    PerceptualEvaluationSpeechQuality(fs=self.sample_rate, mode="wb")
                 )
             elif name == "squim_mos":
                 metric = AudioMetricWrapper(
@@ -611,6 +614,7 @@ class AudioCodecNewModel(ModelPT):
         if self.global_step % self.cfg.get("metric_log_interval", 500) == 0:
             with torch.no_grad():
                 for name, metric in self.metrics.items():
+                    print("the name is ", name)
                     metric = metric.to(self.device)
                     value = metric(
                         preds=audio_gen,
@@ -663,7 +667,6 @@ class AudioCodecNewModel(ModelPT):
 
     def on_train_epoch_end(self):
         self.update_lr("epoch")
-
     def validation_step(self, batch, batch_idx):
         audio, audio_len, audio_gen, _ = self._process_batch(batch)
 
@@ -686,11 +689,12 @@ class AudioCodecNewModel(ModelPT):
             "val_loss_stft": loss_stft.detach(),
             "val_loss_time_domain": loss_time.detach(),
             "val_loss_si_sdr": loss_si_sdr.detach(),
+            "new_something": loss_si_sdr.detach(),
         }
 
         with torch.no_grad():
+            # perceptual / objective metrics
             for name, metric in self.metrics.items():
-                metric = metric.to(self.device)
                 value = metric(
                     preds=audio_gen,
                     target=audio,
@@ -698,18 +702,19 @@ class AudioCodecNewModel(ModelPT):
                 )
                 metrics[f"val_{name}"] = value.mean().detach()
 
+            # optional speaker consistency (NO gradients in validation)
+            if self.use_scl_loss:
+                audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
+                pred_embs = self.get_speaker_embedding(audios_batch, requires_grad=False)
+                gt_emb, syn_emb = torch.chunk(pred_embs, 2, dim=0)
+                loss_scl = -torch.nn.functional.cosine_similarity(
+                    gt_emb, syn_emb
+                ).mean() * self.scl_loss_scale
+
+                metrics["val_loss_scl"] = loss_scl.detach()
+                metrics["val_loss"] += metrics["val_loss_scl"]
+
         self.log_dict(metrics, on_epoch=True, sync_dist=True)
-
-    # optional speaker consistency
-    if self.use_scl_loss:
-        audios_batch = torch.cat((audio.squeeze(1), audio_gen.squeeze(1)), dim=0)
-        pred_embs = self.get_speaker_embedding(audios_batch, requires_grad=True)
-        gt_emb, syn_emb = torch.chunk(pred_embs, 2, dim=0)
-        loss_scl = -torch.nn.functional.cosine_similarity(gt_emb, syn_emb).mean() * self.scl_loss_scale
-        metrics["val_loss_scl"] = loss_scl.detach().cpu().item()
-        metrics["val_loss"] += metrics["val_loss_scl"]
-
-    self.log_dict(metrics, on_epoch=True, sync_dist=True)
 
 
     def get_dataset(self, cfg):
