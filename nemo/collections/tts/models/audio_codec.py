@@ -63,6 +63,8 @@ except ModuleNotFoundError:
 @experimental
 class AudioCodecNewModel(ModelPT):
     def __init__(self, cfg: DictConfig, trainer: Trainer = None):
+        sfasfjiafjoafja
+
         # Convert to Hydra 1.0 compatible DictConfig
         cfg = model_utils.convert_model_config_to_dict_config(cfg)
         cfg = model_utils.maybe_update_config_version(cfg)
@@ -610,7 +612,6 @@ class AudioCodecNewModel(ModelPT):
             loss_feature = self.feature_loss_fn(fmaps_real=fmaps_real, fmaps_gen=fmaps_gen)
             metrics["g_loss_feature"] = loss_feature
             generator_losses.append(self.feature_loss_scale * loss_feature)
-            sfasfjiafjoafja
         if self.global_step % self.cfg.get("metric_log_interval", 500) == 0:
             with torch.no_grad():
                 for name, metric in self.metrics.items():
