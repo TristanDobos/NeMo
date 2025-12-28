@@ -228,10 +228,13 @@ class AudioCodecNewModel(ModelPT):
                     )
                 )
             elif name == "pesq":
-                metric = AudioMetricWrapper(
-                    PerceptualEvaluationSpeechQuality(
-                        fs=self.sample_rate, mode="wb"
+                if self.sample_rate not in [8000, 16000]:
+                    logging.warning(
+                        f"Skipping PESQ: unsupported sample rate {self.sample_rate}"
                     )
+                    continue
+                metric = AudioMetricWrapper(
+                    PerceptualEvaluationSpeechQuality(fs=self.sample_rate, mode="wb")
                 )
             elif name == "squim_mos":
                 metric = AudioMetricWrapper(
