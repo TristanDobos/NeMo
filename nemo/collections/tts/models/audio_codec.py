@@ -610,7 +610,7 @@ class AudioCodecNewModel(ModelPT):
             loss_feature = self.feature_loss_fn(fmaps_real=fmaps_real, fmaps_gen=fmaps_gen)
             metrics["g_loss_feature"] = loss_feature
             generator_losses.append(self.feature_loss_scale * loss_feature)
-            
+            sfasfjiafjoafja
         if self.global_step % self.cfg.get("metric_log_interval", 500) == 0:
             with torch.no_grad():
                 for name, metric in self.metrics.items():
