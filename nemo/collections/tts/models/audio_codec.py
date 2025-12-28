@@ -61,7 +61,7 @@ except ModuleNotFoundError:
 
 
 @experimental
-class AudioCodecNewModel(ModelPT):
+class AudioCodecModel(ModelPT):
     def __init__(self, cfg: DictConfig, trainer: Trainer = None):
         sfasfjiafjoafja
 
