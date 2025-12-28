@@ -21,7 +21,7 @@ cd /mnt/matylda6/xdobos00/NeMo/examples/tts
 export WANDB_MODE=offline
 
 # Default values
-CONFIG_PATH="conf/audio_codec_new"
+CONFIG_PATH="conf/audio_codec"
 CONFIG_NAME="audio_codec_low_frame_rate_22050_nanocodec_nowavlm_w_metrics.yaml"
 
 # Function to display help
@@ -63,12 +63,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Run the Python command
-echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
+echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec_new.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
 export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
-python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec_new.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
-
-cd /mnt/matylda6/xdobos00/NeMo/examples/tts/conf/audio_codec/audio_codec_low_frame_rate_22050_nanocodec_nowavlm.yaml
 
 
 # hydra - konfigy hierarchicky!!!
