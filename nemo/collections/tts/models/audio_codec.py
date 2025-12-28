@@ -33,6 +33,13 @@ from nemo.collections.tts.losses.audio_codec_loss import (
     SISDRLoss,
     TimeDomainLoss,
 )
+from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
+from torchmetrics.audio.sdr import (
+    ScaleInvariantSignalDistortionRatio,
+    SignalDistortionRatio,
+)
+from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
+
 from nemo.collections.tts.modules.audio_codec_modules import ResNetSpeakerEncoder
 from nemo.collections.tts.modules.common import GaussianDropout
 from nemo.collections.tts.parts.utils.callbacks import LoggingCallback
@@ -54,7 +61,7 @@ except ModuleNotFoundError:
 
 
 @experimental
-class AudioCodecModel(ModelPT):
+class AudioCodecNewModel(ModelPT):
     def __init__(self, cfg: DictConfig, trainer: Trainer = None):
         # Convert to Hydra 1.0 compatible DictConfig
         cfg = model_utils.convert_model_config_to_dict_config(cfg)
@@ -137,11 +144,13 @@ class AudioCodecModel(ModelPT):
         self.si_sdr_loss_scale = cfg.get("si_sdr_loss_scale", 0.0)
         self.time_domain_loss_fn = TimeDomainLoss()
         self.si_sdr_loss_fn = SISDRLoss()
-        self.metrics = {
-            "stoi": SquimObjectiveMetric(metric="stoi", fs=cfg.sample_rate),
-            "pesq": SquimObjectiveMetric(metric="pesq", fs=cfg.sample_rate),
-            "si_sdr": SquimObjectiveMetric(metric="si_sdr", fs=cfg.sample_rate),
-        }
+
+        metric_names = cfg.get(
+            "metrics",
+            ["stoi", "pesq", "sisdr"]
+        )
+        self.metrics = self._build_metrics(metric_names)
+        
         # Discriminator loss setup
         self.gen_loss_scale = cfg.get("gen_loss_scale", 1.0)
         self.feature_loss_scale = cfg.get("feature_loss_scale", 1.0)
@@ -195,6 +204,57 @@ class AudioCodecModel(ModelPT):
         # Optimizer setup
         self.lr_schedule_interval = None
         self.automatic_optimization = False
+
+    def _build_metrics(self, metric_names):
+        metrics = {}
+
+        for name in metric_names:
+            name = name.lower()
+
+            if name == "sdr":
+                metric = AudioMetricWrapper(SignalDistortionRatio())
+            elif name == "sisdr":
+                metric = AudioMetricWrapper(ScaleInvariantSignalDistortionRatio())
+            elif name == "stoi":
+                metric = AudioMetricWrapper(
+                    ShortTimeObjectiveIntelligibility(
+                        fs=self.sample_rate, extended=False
+                    )
+                )
+            elif name == "estoi":
+                metric = AudioMetricWrapper(
+                    ShortTimeObjectiveIntelligibility(
+                        fs=self.sample_rate, extended=True
+                    )
+                )
+            elif name == "pesq":
+                metric = AudioMetricWrapper(
+                    PerceptualEvaluationSpeechQuality(
+                        fs=self.sample_rate, mode="wb"
+                    )
+                )
+            elif name == "squim_mos":
+                metric = AudioMetricWrapper(
+                    SquimMOSMetric(fs=self.sample_rate)
+                )
+            elif name == "squim_stoi":
+                metric = AudioMetricWrapper(
+                    SquimObjectiveMetric(metric="stoi", fs=self.sample_rate)
+                )
+            elif name == "squim_pesq":
+                metric = AudioMetricWrapper(
+                    SquimObjectiveMetric(metric="pesq", fs=self.sample_rate)
+                )
+            elif name == "squim_si_sdr":
+                metric = AudioMetricWrapper(
+                    SquimObjectiveMetric(metric="si_sdr", fs=self.sample_rate)
+                )
+            else:
+                raise ValueError(f"Unknown metric: {name}")
+
+            metrics[name] = metric
+
+        return metrics
 
     def state_dict(self, destination=None, prefix='', keep_vars=False):
         if hasattr(self, '_no_state_dict') and self._no_state_dict:
@@ -547,6 +607,17 @@ class AudioCodecModel(ModelPT):
             loss_feature = self.feature_loss_fn(fmaps_real=fmaps_real, fmaps_gen=fmaps_gen)
             metrics["g_loss_feature"] = loss_feature
             generator_losses.append(self.feature_loss_scale * loss_feature)
+            
+        if self.global_step % self.cfg.get("metric_log_interval", 500) == 0:
+            with torch.no_grad():
+                for name, metric in self.metrics.items():
+                    metric = metric.to(self.device)
+                    value = metric(
+                        preds=audio_gen,
+                        target=audio,
+                        input_length=audio_len,
+                    )
+                    self.log(f"train_{name}", value.mean(), on_step=True)
 
 
         # compute embeddings for speaker consistency loss
@@ -596,37 +667,38 @@ class AudioCodecModel(ModelPT):
     def validation_step(self, batch, batch_idx):
         audio, audio_len, audio_gen, _ = self._process_batch(batch)
 
-        # reconstruction losses
-        loss_mel_l1, loss_mel_l2 = self.mel_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
-        loss_stft = self.stft_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
-        loss_time = self.time_domain_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
-        loss_si_sdr = self.si_sdr_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
+        loss_mel_l1, loss_mel_l2 = self.mel_loss_fn(
+            audio_real=audio,
+            audio_gen=audio_gen,
+            audio_len=audio_len,
+        )
 
-        # compute metrics
-        stoi_metric = self.metrics["stoi"].to(self.device)
-        pesq_metric = self.metrics["pesq"].to(self.device)
-        sisdr_metric = self.metrics["si_sdr"].to(self.device)
+        loss_stft = self.stft_loss_fn(audio, audio_gen, audio_len)
+        loss_time = self.time_domain_loss_fn(audio, audio_gen, audio_len)
+        loss_si_sdr = self.si_sdr_loss_fn(audio, audio_gen, audio_len)
+
+        val_loss = loss_mel_l1 + loss_stft + loss_time
+
+        metrics = {
+            "val_loss": val_loss.detach(),
+            "val_loss_mel_l1": loss_mel_l1.detach(),
+            "val_loss_mel_l2": loss_mel_l2.detach(),
+            "val_loss_stft": loss_stft.detach(),
+            "val_loss_time_domain": loss_time.detach(),
+            "val_loss_si_sdr": loss_si_sdr.detach(),
+        }
 
         with torch.no_grad():
-            stoi_val = stoi_metric(preds=audio_gen, target=audio).mean().detach().cpu().item()
-            pesq_val = pesq_metric(preds=audio_gen, target=audio).mean().detach().cpu().item()
-            sisdr_val = sisdr_metric(preds=audio_gen, target=audio).mean().detach().cpu().item()
+            for name, metric in self.metrics.items():
+                metric = metric.to(self.device)
+                value = metric(
+                    preds=audio_gen,
+                    target=audio,
+                    input_length=audio_len,
+                )
+                metrics[f"val_{name}"] = value.mean().detach()
 
-        # final validation loss
-        val_loss = (loss_mel_l1 + loss_stft + loss_time)
-
-        # ---- LOG DICT (WANDB COMPATIBLE) ----
-        metrics = {
-            "val_loss": val_loss.detach().cpu().item(),
-            "val_loss_mel_l1": loss_mel_l1.detach().cpu().item(),
-            "val_loss_mel_l2": loss_mel_l2.detach().cpu().item(),
-            "val_loss_stft": loss_stft.detach().cpu().item(),
-            "val_loss_time_domain": loss_time.detach().cpu().item(),
-            "val_loss_si_sdr": loss_si_sdr.detach().cpu().item(),
-            "val_stoi": stoi_val,
-            "val_pesq": pesq_val,
-            "val_sisdr": sisdr_val,
-        }
+        self.log_dict(metrics, on_epoch=True, sync_dist=True)
 
     # optional speaker consistency
     if self.use_scl_loss:
