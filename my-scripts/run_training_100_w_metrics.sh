@@ -18,6 +18,7 @@ init_conda
 conda activate nemo
 cd /mnt/matylda6/xdobos00/NeMo/examples/tts
 
+export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
 
 # Default values

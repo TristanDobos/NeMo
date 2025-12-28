@@ -17,11 +17,16 @@ OneLogger callback for NeMo training.
 
 This module provides a callback that integrates OneLogger telemetry with NeMo training.
 """
-import os
 from typing import Any, Dict
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
+
+import os
+
+if os.environ.get("NEMO_DISABLE_ONE_LOGGER", "1") == "1":
+    raise ModuleNotFoundError("OneLogger disabled")
+
 from nv_one_logger.api.config import OneLoggerConfig
 from nv_one_logger.training_telemetry.api.callbacks import on_app_start
 from nv_one_logger.training_telemetry.api.config import TrainingTelemetryConfig
