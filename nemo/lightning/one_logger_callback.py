@@ -25,7 +25,9 @@ from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 import os
 
 if os.environ.get("NEMO_DISABLE_ONE_LOGGER", "1") == "1":
-    raise ModuleNotFoundError("OneLogger disabled")
+    class OneLoggerNeMoCallback(Callback):
+        """No-op OneLogger callback (disabled)."""
+        pass
 
 from nv_one_logger.api.config import OneLoggerConfig
 from nv_one_logger.training_telemetry.api.callbacks import on_app_start
