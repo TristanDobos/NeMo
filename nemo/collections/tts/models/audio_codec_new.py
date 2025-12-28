@@ -614,6 +614,7 @@ class AudioCodecNewModel(ModelPT):
         if self.global_step % self.cfg.get("metric_log_interval", 500) == 0:
             with torch.no_grad():
                 for name, metric in self.metrics.items():
+                    print("the name is ", name)
                     metric = metric.to(self.device)
                     value = metric(
                         preds=audio_gen,
