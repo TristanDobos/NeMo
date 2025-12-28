@@ -20,7 +20,7 @@ from nemo.core.config import hydra_runner
 from nemo.utils import logging
 from nemo.utils.exp_manager import exp_manager
 
-adsfafa
+# adsfafa - this is run
 
 @hydra_runner(config_path="conf/audio_codec", config_name="audio_codec")
 def main(cfg):
