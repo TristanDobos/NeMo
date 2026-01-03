@@ -22,13 +22,6 @@ from typing import Any, Dict
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 
-import os
-
-if os.environ.get("NEMO_DISABLE_ONE_LOGGER", "1") == "1":
-    class OneLoggerNeMoCallback(OneLoggerPTLCallback, BaseCallback):
-        """No-op OneLogger callback (disabled)."""
-        pass
-
 from nv_one_logger.api.config import OneLoggerConfig
 from nv_one_logger.training_telemetry.api.callbacks import on_app_start
 from nv_one_logger.training_telemetry.api.config import TrainingTelemetryConfig
