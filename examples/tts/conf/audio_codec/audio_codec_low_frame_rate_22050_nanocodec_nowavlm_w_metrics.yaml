@@ -2,9 +2,9 @@
 # If you want to train model on other dataset, you can change config values according to your dataset.
 # Most dataset-specific arguments are in the head of the config file, see below.
 
-name: NanoCodec100hWMetricsNoPesq
+name: NanoCodec100hWithoutMetrics
 
-max_epochs: 150 # 250 initally
+max_epochs: 200 # 250 initally
 # Adjust batch size based on GPU memory
 batch_size: 8
 # When doing weighted sampling with multiple manifests, this defines how many training steps are in an epoch.
@@ -244,7 +244,7 @@ exp_manager:
   wandb_logger_kwargs:
     mode: offline
     name: ${name}
-    project: test-100h-trainings-w-metrics-submit
+    project: wo-metrics-100h-trainings
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
