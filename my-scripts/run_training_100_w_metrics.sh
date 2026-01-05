@@ -1,4 +1,6 @@
 #!/bin/bash
+#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510.err            # standard error log file
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -18,6 +20,14 @@ source /mnt/matylda6/xdobos00/nemo_final/bin/activate
 
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
+
+ulimit -n unlimited     # file descriptors
+ulimit -u unlimited     # max user processes
+ulimit -v unlimited     # virtual memory
+ulimit -m unlimited     # resident set size
+ulimit -s unlimited     # stack size
+ulimit -l unlimited     # locked memory
+
 
 # Default values
 CONFIG_PATH="conf/audio_codec"
