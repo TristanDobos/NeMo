@@ -14,9 +14,7 @@ init_conda() {
  unset __conda_setup
 }
 
-init_conda
-conda activate nemo122
-cd /mnt/matylda6/xdobos00/NeMo/examples/tts
+source /mnt/matylda6/xdobos00/nemo_final/bin/activate
 
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline

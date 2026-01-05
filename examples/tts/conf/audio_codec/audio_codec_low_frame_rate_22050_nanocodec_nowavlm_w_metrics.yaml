@@ -244,7 +244,7 @@ exp_manager:
   wandb_logger_kwargs:
     mode: offline
     name: ${name}
-    project: 100h-trainings-w-metrics
+    project: test-100h-trainings-w-metrics
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
