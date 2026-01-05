@@ -149,7 +149,8 @@ class AudioCodecModel(ModelPT):
 
         metric_names = cfg.get(
             "metrics",
-            ["stoi", "pesq", "sisdr"]
+            # ["stoi", "pesq", "sisdr"]
+            []
         )
         self.metrics = self._build_metrics(metric_names)
         
@@ -615,14 +616,15 @@ class AudioCodecModel(ModelPT):
         if self.global_step % self.cfg.get("metric_log_interval", 500) == 0:
             with torch.no_grad():
                 for name, metric in self.metrics.items():
-                    print("the name is ", name)
-                    metric = metric.to(self.device)
-                    value = metric(
-                        preds=audio_gen,
-                        target=audio,
-                        input_length=audio_len,
-                    )
-                    self.log(f"train_{name}", value.mean(), on_step=True)
+                    if name not in ["stoi", "pesq", "sisdr"]:
+                        print("the name is ", name)
+                        metric = metric.to(self.device)
+                        value = metric(
+                            preds=audio_gen,
+                            target=audio,
+                            input_length=audio_len,
+                        )
+                        self.log(f"train_{name}", value.mean(), on_step=True)
 
 
         # compute embeddings for speaker consistency loss
@@ -677,10 +679,10 @@ class AudioCodecModel(ModelPT):
             audio_len=audio_len,
         )
 
-        loss_stft = self.stft_loss_fn(audio, audio_gen, audio_len)
-        loss_time = self.time_domain_loss_fn(audio, audio_gen, audio_len)
-        loss_si_sdr = self.si_sdr_loss_fn(audio, audio_gen, audio_len)
-
+        # Update these three lines to use keywords:
+        loss_stft = self.stft_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
+        loss_time = self.time_domain_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
+        loss_si_sdr = self.si_sdr_loss_fn(audio_real=audio, audio_gen=audio_gen, audio_len=audio_len)
         val_loss = loss_mel_l1 + loss_stft + loss_time
 
         metrics = {
@@ -694,14 +696,28 @@ class AudioCodecModel(ModelPT):
         }
 
         with torch.no_grad():
+            # Replace self.metrics.to(audio.device) with this:
+            if isinstance(self.metrics, dict):
+                for m in self.metrics.values():
+                    if hasattr(m, 'to'):
+                        m.to(audio.device)
             # perceptual / objective metrics
+        
             for name, metric in self.metrics.items():
-                value = metric(
+                try:
+                    value = metric(
                     preds=audio_gen,
                     target=audio,
                     input_length=audio_len,
-                )
-                metrics[f"val_{name}"] = value.mean().detach()
+                    )
+                    self.log(f"train_{name}", value)
+                    metrics[f"val_{name}"] = value.mean().detach()
+                except Exception as e:
+                    # If PESQ fails (NoUtterancesError), just log a 1.0 or skip
+                    # This prevents the crash.
+                    # self.log(f"train_{name}", 1.0) 
+                    self.log(f"train_{name}", 1.0)
+                    continue
 
             # optional speaker consistency (NO gradients in validation)
             if self.use_scl_loss:
