@@ -50,6 +50,7 @@ model:
   max_epochs: ${max_epochs}
   sample_rate: ${sample_rate}
   samples_per_frame: ${samples_per_frame}
+  steps_per_epoch: null
 
   # --- Loss Scales (Updated to match target) ---
   mel_loss_l1_scale: 10.0
