@@ -37,7 +37,7 @@ weighted_sampling_steps_per_epoch: 1000
 # --- Global Audio Params ---
 sample_rate: 22050
 samples_per_frame: 1024 # Updated from 1024
-# train_n_samples: 24696
+train_n_samples: 24696
 
 # Sampling rates must product to 1764 (7 * 7 * 6 * 3 * 2)
 up_sample_rates: [7, 7, 6, 3, 2]
