@@ -125,14 +125,20 @@ model:
       #   initial_channel: 64
       #   use_spectral_norm: false
 
+  generator_loss:
+    _target_: nemo.collections.tts.losses.audio_codec_loss.GeneratorSquaredLoss
+  discriminator_loss:
+    _target_: nemo.collections.tts.losses.audio_codec_loss.DiscriminatorSquaredLoss
   optim:
     _target_: torch.optim.Adam
-    lr: 2e-4
-    betas: [0.8, 0.99]
-
+    lr: 0.0002
+    betas:
+      - 0.8
+      - 0.99
     sched:
       name: ExponentialLR
       gamma: 0.998
+  target: nemo.collections.tts.models.audio_codec.AudioCodecModel
 
 trainer:
   num_nodes: 1
