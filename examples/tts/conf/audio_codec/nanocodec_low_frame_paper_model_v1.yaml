@@ -81,25 +81,25 @@ model:
   feature_loss_type: absolute
 
   train_ds:
-  dataset:
-    _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
-    dataset_meta:
-      # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
-      librispeech:
-        manifest_path: ${train_ds_meta.manifest_path}
-        audio_dir: ${train_ds_meta.audio_dir}
-        sample_weight: ${train_ds_meta.sample_weight}
-        audio_tar_filepaths: ${train_ds_meta.audio_tar_filepaths}
-    weighted_sampling_steps_per_epoch: null
-    sample_rate: ${sample_rate}
-    n_samples: ${train_n_samples}
-    min_duration: 0.4 # seconds
-    max_duration: null
+    dataset:
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      dataset_meta:
+        # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+        librispeech:
+          manifest_path: ${train_ds_meta.manifest_path}
+          audio_dir: ${train_ds_meta.audio_dir}
+          sample_weight: ${train_ds_meta.sample_weight}
+          audio_tar_filepaths: ${train_ds_meta.audio_tar_filepaths}
+      weighted_sampling_steps_per_epoch: null
+      sample_rate: ${sample_rate}
+      n_samples: ${train_n_samples}
+      min_duration: 0.4 # seconds
+      max_duration: null
 
-  dataloader_params:
-    batch_size: ${batch_size}
-    drop_last: true
-    num_workers: 4
+    dataloader_params:
+      batch_size: ${batch_size}
+      drop_last: true
+      num_workers: 4
 
   validation_ds:
     dataset:
