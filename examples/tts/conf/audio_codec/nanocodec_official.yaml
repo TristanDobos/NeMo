@@ -1,0 +1,185 @@
+freeze_audio_encoder_and_vector_quantizer: false
+use_scl_loss: false
+acl_loss_scale: 0.015
+use_asr_consitency_loss: false
+scl_loss_scale: 0.1
+max_epochs: 196
+steps_per_epoch: 1000
+sample_rate: 22050
+samples_per_frame: 1764
+mel_loss_l1_scale: 10.0
+mel_loss_l2_scale: 0.0
+stft_loss_scale: 10.0
+time_domain_loss_scale: 0.0
+codebook_loss_scale: 0.0
+commit_loss_scale: 0.0
+
+mel_loss_dims:
+  - 5
+  - 10
+  - 20
+  - 40
+  - 80
+  - 160
+mel_loss_log_guard: 1.0
+stft_loss_log_guard: 1.0
+feature_loss_type: absolute
+train_ds:
+  dataset:
+    dataset_type: tarred_vocoder
+    dataset_args:
+      dataset_meta:
+        mls_english:
+          manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/tarred_audio/train_manifest.json
+          tar_filepath: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/tarred_audio/audio_{0..1999}.tar
+        cv:
+          manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/tarred_audio/train_manifest.json
+          tar_filepath: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/tarred_audio/audio_{0..279}.tar
+      sample_rate: 22050
+      n_samples: 24696
+      min_duration: 0.4
+      max_duration: null
+      shard_strategy: replicate
+      sample_type: weighted_random
+      sample_args:
+        batch_size: 32
+        steps_per_epoch: 1000
+        dataset_weights:
+          - 0.75
+          - 0.25
+      shuffle_n: 10000
+  dataloader_params:
+    batch_size: 32
+    drop_last: true
+    num_workers: 4
+validation_ds:
+  dataset:
+    dataset_type: vocoder
+    dataset_args:
+      sample_rate: 22050
+      n_samples: null
+      min_duration: null
+      max_duration: null
+      trunc_duration: 10.0
+      dataset_meta:
+        mls_english:
+          manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/val_manifest_unseen.json
+          audio_dir: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/audio_22khz
+        cv:
+          manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/val_manifest.json
+          audio_dir: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/audio_22khz
+  dataloader_params:
+    batch_size: 4
+    num_workers: 2
+log_config:
+  log_dir: /ws/exps/audio_codec_train_interspeech/ml-model-INTERSPEECH_2025_abblations_12.5Hz_4_codebooks_4032_codes_enc_non_causal_dec_causal_0.6kbps/mls_english_cv_22khz/MelCodec/ml-model-INTERSPEECH_2025_abblations_12.5Hz_4_codebooks_4032_codes_enc_non_causal_dec_causal_0.6kbps/samples
+  log_epochs:
+    - 1
+    - 5
+    - 7
+  epoch_frequency: 4
+  log_tensorboard: false
+  log_wandb: false
+  generators:
+    - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
+      log_audio: true
+      log_encoding: false
+      log_dequantized: false
+  dataset:
+    dataset_type: vocoder
+    dataset_args:
+      sample_rate: 22050
+      n_samples: null
+      min_duration: null
+      max_duration: null
+      trunc_duration: 10.0
+      dataset_meta:
+        mls_english:
+          manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/log_manifest.json
+          audio_dir: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/audio_22khz
+        cv:
+          manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/log_manifest.json
+          audio_dir: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/audio_22khz
+  dataloader_params:
+    batch_size: 4
+    num_workers: 2
+audio_encoder:
+  _target_: nemo.collections.tts.modules.audio_codec_modules.HiFiGANEncoder
+  down_sample_rates:
+    - 2
+    - 3
+    - 6
+    - 7
+    - 7
+  encoded_dim: 16
+  base_channels: 24
+  activation: lrelu
+  pad_mode: replicate
+audio_decoder:
+  _target_: nemo.collections.tts.modules.audio_codec_modules.CausalHiFiGANDecoder
+  up_sample_rates:
+    - 7
+    - 7
+    - 6
+    - 3
+    - 2
+  input_dim: 16
+  base_channels: 864
+  activation: half_snake
+  output_activation: clamp
+  pad_mode: zeros
+  n_groups_equal_to_out_channels: true
+vector_quantizer:
+  _target_: nemo.collections.tts.modules.audio_codec_modules.GroupFiniteScalarQuantizer
+  num_groups: 4
+  num_levels_per_group:
+    - 9
+    - 8
+    - 8
+    - 7
+discriminator:
+  _target_: nemo.collections.tts.modules.audio_codec_modules.Discriminator
+  discriminators:
+    - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiPeriodDiscriminator
+    - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiResolutionDiscriminatorSTFT
+      resolutions:
+        - - 512
+          - 128
+          - 512
+        - - 1024
+          - 256
+          - 1024
+      stft_bands:
+        - - 0.0
+          - 0.1
+        - - 0.1
+          - 0.25
+        - - 0.25
+          - 0.5
+        - - 0.5
+          - 0.75
+        - - 0.75
+          - 1.0
+    - _target_: nemo.collections.tts.modules.audio_codec_modules.SLMDiscriminator
+      slm_model_name: microsoft/wavlm-base-plus
+      slm_sr: 16000
+      input_sr: 22050
+      slm_hidden: 768
+      slm_layers: 13
+      initial_channel: 64
+      use_spectral_norm: false
+generator_loss:
+  _target_: nemo.collections.tts.losses.audio_codec_loss.GeneratorSquaredLoss
+discriminator_loss:
+  _target_: nemo.collections.tts.losses.audio_codec_loss.DiscriminatorSquaredLoss
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.0002
+  betas:
+    - 0.8
+    - 0.99
+  sched:
+    name: ExponentialLR
+    gamma: 0.998
+target: nemo.collections.tts.models.audio_codec.AudioCodecModel
+nemo_version: 2.1.0rc0
