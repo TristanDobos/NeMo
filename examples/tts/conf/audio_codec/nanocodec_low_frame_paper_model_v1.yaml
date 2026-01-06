@@ -121,38 +121,38 @@ validation_ds:
     batch_size: 4
     num_workers: 2
 
-# Configures how audio samples are generated and saved during training.
-# Remove this section to disable logging.
-log_config:
-  log_dir: ${log_dir}
-  log_epochs: [1, 3, 5]
-  epoch_frequency: 3
-  log_tensorboard: false
-  log_wandb: true
+  # Configures how audio samples are generated and saved during training.
+  # Remove this section to disable logging.
+  log_config:
+    log_dir: ${log_dir}
+    log_epochs: [1, 3, 5]
+    epoch_frequency: 3
+    log_tensorboard: false
+    log_wandb: true
 
-  generators:
-    - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
-      log_audio: true
-      log_encoding: false
-      log_dequantized: false
+    generators:
+      - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
+        log_audio: true
+        log_encoding: false
+        log_dequantized: false
 
-  dataset:
-    _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
-    sample_rate: ${sample_rate}
-    n_samples: null
-    min_duration: null
-    max_duration: null
-    trunc_duration: 10.0 # Only log the first 10 seconds of generated audio.
-    dataset_meta:
-      librispeech:
-        manifest_path: ${val_ds_meta.manifest_path}
-        audio_dir: ${val_ds_meta.audio_dir}
-        sample_weight: ${val_ds_meta.sample_weight}
-        audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
+    dataset:
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      sample_rate: ${sample_rate}
+      n_samples: null
+      min_duration: null
+      max_duration: null
+      trunc_duration: 10.0 # Only log the first 10 seconds of generated audio.
+      dataset_meta:
+        librispeech:
+          manifest_path: ${val_ds_meta.manifest_path}
+          audio_dir: ${val_ds_meta.audio_dir}
+          sample_weight: ${val_ds_meta.sample_weight}
+          audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
 
-  dataloader_params:
-    batch_size: 4
-    num_workers: 2
+    dataloader_params:
+      batch_size: 4
+      num_workers: 2
 
   # --- Encoder Architecture ---
   audio_encoder:
