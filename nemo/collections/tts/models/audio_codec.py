@@ -149,8 +149,7 @@ class AudioCodecModel(ModelPT):
 
         metric_names = cfg.get(
             "metrics",
-            # ["stoi", "pesq", "sisdr"]
-            []
+            ["stoi", "pesq", "sisdr"]
         )
         self.metrics = self._build_metrics(metric_names)
         

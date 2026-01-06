@@ -246,6 +246,8 @@ exp_manager:
     name: ${name}
     project: wo-metrics-100h-trainings
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
+    id: nanocodec_run_w_metrics_100h_v1_1
+    resume: true
   checkpoint_callback_params:
     monitor: val_loss
     mode: min
