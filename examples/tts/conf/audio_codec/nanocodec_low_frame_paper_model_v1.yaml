@@ -58,6 +58,16 @@ model:
   time_domain_loss_scale: 0.0
   codebook_loss_scale: 0.0
   commit_loss_scale: 0.0
+  loss_resolutions:
+    [
+      [32, 8, 32],
+      [64, 16, 64],
+      [128, 32, 128],
+      [256, 64, 256],
+      [512, 128, 512],
+      [1024, 256, 1024],
+      [2048, 512, 2048],
+    ]
 
   # New parameters from target config
   use_scl_loss: false
