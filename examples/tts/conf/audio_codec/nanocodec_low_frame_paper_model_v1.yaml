@@ -213,9 +213,9 @@ model:
     sched:
       name: ExponentialLR
       gamma: 0.998
-      max_steps: -1 # This allows NeMo to calculate steps based on epochs
-      iters_per_batch: 1 # Standard for most setups
-      max_epochs: ${max_epochs}
+      # max_steps: -1 # This allows NeMo to calculate steps based on epochs
+      # iters_per_batch: 1 # Standard for most setups
+      # max_epochs: ${max_epochs}
   target: nemo.collections.tts.models.audio_codec.AudioCodecModel
 
 trainer:
