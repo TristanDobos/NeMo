@@ -66,7 +66,6 @@ model:
       [256, 64, 256],
       [512, 128, 512],
       [1024, 256, 1024],
-      [2048, 512, 2048],
     ]
 
   # New parameters from target config
