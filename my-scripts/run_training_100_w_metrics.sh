@@ -1,6 +1,9 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-1.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-1.err            # standard error log file
+
+
+ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -21,12 +24,7 @@ source /mnt/matylda6/xdobos00/nemo_final/bin/activate
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
 
-ulimit -n unlimited     # file descriptors
-ulimit -u unlimited     # max user processes
-ulimit -v unlimited     # virtual memory
-ulimit -m unlimited     # resident set size
-ulimit -s unlimited     # stack size
-ulimit -l unlimited     # locked memory
+ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
 
 
 # Default values
@@ -75,10 +73,10 @@ done
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
 export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
 
 
