@@ -42,7 +42,7 @@ up_sample_rates: [8, 8, 4, 2, 2]
 down_sample_rates: [2, 2, 4, 8, 8]
 
 num_codebooks: 8
-encoder_out_dim: 32
+encoder_out_dim: 27
 
 model:
   max_epochs: ${max_epochs}
