@@ -48,6 +48,7 @@ encoder_out_dim: 32
 model:
   max_epochs: ${max_epochs}
   # steps_per_epoch: null
+  max_steps: ${max_steps}
 
   sample_rate: ${sample_rate}
   samples_per_frame: ${samples_per_frame}
