@@ -101,28 +101,28 @@ model:
     drop_last: true
     num_workers: 4
 
-validation_ds:
-  dataset:
-    _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
-    sample_rate: ${sample_rate}
-    n_samples: null
-    min_duration: null
-    max_duration: null
-    trunc_duration: 10.0 # Only use the first 10 seconds of audio for computing validation loss
-    dataset_meta:
-      # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
-      librispeech:
-        manifest_path: ${val_ds_meta.manifest_path}
-        audio_dir: ${val_ds_meta.audio_dir}
-        sample_weight: ${val_ds_meta.sample_weight}
-        audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
+  validation_ds:
+    dataset:
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      sample_rate: ${sample_rate}
+      n_samples: null
+      min_duration: null
+      max_duration: null
+      trunc_duration: 10.0 # Only use the first 10 seconds of audio for computing validation loss
+      dataset_meta:
+        # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+        librispeech:
+          manifest_path: ${val_ds_meta.manifest_path}
+          audio_dir: ${val_ds_meta.audio_dir}
+          sample_weight: ${val_ds_meta.sample_weight}
+          audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
 
-  dataloader_params:
-    batch_size: 4
-    num_workers: 2
+    dataloader_params:
+      batch_size: 4
+      num_workers: 2
 
-  # Configures how audio samples are generated and saved during training.
-  # Remove this section to disable logging.
+    # Configures how audio samples are generated and saved during training.
+    # Remove this section to disable logging.
   log_config:
     log_dir: ${log_dir}
     log_epochs: [1, 3, 5]
@@ -213,6 +213,9 @@ validation_ds:
     sched:
       name: ExponentialLR
       gamma: 0.998
+      max_steps: -1 # This allows NeMo to calculate steps based on epochs
+      iters_per_batch: 1 # Standard for most setups
+      max_epochs: ${max_epochs}
   target: nemo.collections.tts.models.audio_codec.AudioCodecModel
 
 trainer:
