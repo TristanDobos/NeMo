@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-1.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-1.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-2.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-2.err            # standard error log file
 
 
 ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
