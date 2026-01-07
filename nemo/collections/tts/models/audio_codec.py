@@ -230,11 +230,11 @@ class AudioCodecModel(ModelPT):
                     )
                 )
             elif name == "pesq":
-                if self.sample_rate not in [8000, 16000]:
-                    logging.warning(
-                        f"Skipping PESQ: unsupported sample rate {self.sample_rate}"
-                    )
-                    continue
+                # if self.sample_rate not in [8000, 16000]:
+                #     logging.warning(
+                #         f"Skipping PESQ: unsupported sample rate {self.sample_rate}"
+                #     )
+                #     continue
                 metric = AudioMetricWrapper(
                     PerceptualEvaluationSpeechQuality(fs=self.sample_rate, mode="wb")
                 )
@@ -704,6 +704,9 @@ class AudioCodecModel(ModelPT):
         
             for name, metric in self.metrics.items():
                 try:
+                    if metric == "pesq":
+                        audio_gen = torchaudio.transforms.Resample(orig_freq=self.sample_rate, new_freq=16000)(audio_gen)
+                        audio = torchaudio.transforms.Resample(orig_freq=self.sample_rate, new_freq=16000)(audio)  
                     value = metric(
                     preds=audio_gen,
                     target=audio,
@@ -917,3 +920,4 @@ class AudioCodecModel(ModelPT):
         models.append(model)
 
         return models
+
