@@ -712,6 +712,8 @@ class AudioCodecModel(ModelPT):
                     target=audio,
                     input_length=audio_len,
                     )
+                    if metric == "pesq":
+                        print("the pesq value is ", value)
                     self.log(f"train_{name}", value)
                     metrics[f"val_{name}"] = value.mean().detach()
                 except Exception as e:
