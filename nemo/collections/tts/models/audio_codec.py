@@ -236,7 +236,7 @@ class AudioCodecModel(ModelPT):
                 #     )
                 #     continue
                 metric = AudioMetricWrapper(
-                    PerceptualEvaluationSpeechQuality(fs=self.sample_rate, mode="wb")
+                    PerceptualEvaluationSpeechQuality(fs=16000, mode="wb")
                 )
             elif name == "squim_mos":
                 metric = AudioMetricWrapper(
