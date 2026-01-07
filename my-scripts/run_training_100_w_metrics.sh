@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-2.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-2.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-4.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-4.err            # standard error log file
 
 
 ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
@@ -90,3 +90,6 @@ python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$C
 
 # ak nie, replikovat bez low_framerate - povodne, malo by byt ovela rychlejsie
 # ma sa konvergovat do par hodin - napisat mu, ak nie bez low frame
+
+# sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/
+

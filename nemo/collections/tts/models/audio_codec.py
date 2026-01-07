@@ -23,7 +23,7 @@ from einops import rearrange
 from hydra.utils import instantiate
 from lightning.pytorch import Trainer
 from omegaconf import DictConfig, OmegaConf, open_dict
-from nemo.collections.audio.metrics import AudioMetricWrapper, SquimMOSMetric, SquimObjectiveMetric
+from nemo.collections.audio.metrics import AudioMetricWrapper, SquimMOSMetric, SquimObjectiveMetric, audio
 
 from nemo.collections.tts.losses.audio_codec_loss import (
     FeatureMatchingLoss,
@@ -702,26 +702,41 @@ class AudioCodecModel(ModelPT):
             # perceptual / objective metrics
         
             for name, metric in self.metrics.items():
-                self.log("the metric name is ", name)
                 try:
-                    if metric == "pesq":
-                        audio_gen = torchaudio.transforms.Resample(orig_freq=self.sample_rate, new_freq=16000)(audio_gen)
-                        audio = torchaudio.transforms.Resample(orig_freq=self.sample_rate, new_freq=16000)(audio)  
-                    value = metric(
-                    preds=audio_gen,
-                    target=audio,
-                    input_length=audio_len,
-                    )
-                    if metric == "pesq":
-                        self.log("the pesq value is ", value)
+                    if name == "pesq":
+                        audio_gen_cpu = audio_gen.detach().cpu()
+                        audio_cpu = audio.detach().cpu()
+                        audio_len_cpu = audio_len.detach().cpu()
+
+                        resampler = torchaudio.transforms.Resample(
+                            orig_freq=self.sample_rate,
+                            new_freq=16000
+                        )
+
+                        audio_gen_16k = resampler(audio_gen_cpu)
+                        audio_16k = resampler(audio_cpu)
+
+                        value = metric(
+                            preds=audio_gen_16k,
+                            target=audio_16k,
+                            input_length=audio_len_cpu,
+    )
+                    else:
+                        value = metric(
+                            preds=audio_gen,
+                            target=audio,
+                            input_length=audio_len,
+                        )
+
                     self.log(f"train_{name}", value)
                     metrics[f"val_{name}"] = value.mean().detach()
                 except Exception as e:
+                    print("Exception in computing the metric ", name, " the error is ", e)                    
                     # If PESQ fails (NoUtterancesError), just log a 1.0 or skip
                     # This prevents the crash.
                     # self.log(f"train_{name}", 1.0) 
-                    self.logging.warning(f"Metric {name} failed with error: {e}. Logging default value 1.0.")
-                    self.log("the error is ", e, "for the metric ", name)
+                    # self.logging.warning(f"Metric {name} failed with error: {e}. Logging default value 1.0.")
+                    # self.log("the error is ", e, "for the metric ", name)
                     self.log(f"train_{name}", 1.0)
                     continue
 
