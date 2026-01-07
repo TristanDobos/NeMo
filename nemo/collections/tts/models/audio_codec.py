@@ -691,7 +691,6 @@ class AudioCodecModel(ModelPT):
             "val_loss_stft": loss_stft.detach(),
             "val_loss_time_domain": loss_time.detach(),
             "val_loss_si_sdr": loss_si_sdr.detach(),
-            "new_something": loss_si_sdr.detach(),
         }
 
         with torch.no_grad():
@@ -703,6 +702,7 @@ class AudioCodecModel(ModelPT):
             # perceptual / objective metrics
         
             for name, metric in self.metrics.items():
+                self.log("the metric name is ", name)
                 try:
                     if metric == "pesq":
                         audio_gen = torchaudio.transforms.Resample(orig_freq=self.sample_rate, new_freq=16000)(audio_gen)
@@ -713,13 +713,15 @@ class AudioCodecModel(ModelPT):
                     input_length=audio_len,
                     )
                     if metric == "pesq":
-                        print("the pesq value is ", value)
+                        self.log("the pesq value is ", value)
                     self.log(f"train_{name}", value)
                     metrics[f"val_{name}"] = value.mean().detach()
                 except Exception as e:
                     # If PESQ fails (NoUtterancesError), just log a 1.0 or skip
                     # This prevents the crash.
                     # self.log(f"train_{name}", 1.0) 
+                    self.logging.warning(f"Metric {name} failed with error: {e}. Logging default value 1.0.")
+                    self.log("the error is ", e, "for the metric ", name)
                     self.log(f"train_{name}", 1.0)
                     continue
 
