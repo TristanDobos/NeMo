@@ -65,14 +65,14 @@ model:
   feature_loss_type: absolute
   train_ds:
     dataset:
-      dataset_type: tarred_vocoder
-      dataset_args:
-        dataset_meta:
-          librispeech:
-            manifest_path: ${train_ds_meta.manifest_path}
-            audio_dir: ${train_ds_meta.audio_dir}
-            sample_weight: ${train_ds_meta.sample_weight}
-            audio_tar_filepaths: ${train_ds_meta.audio_tar_filepaths}
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      dataset_meta:
+        # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+        librispeech:
+          manifest_path: ${train_ds_meta.manifest_path}
+          audio_dir: ${train_ds_meta.audio_dir}
+          sample_weight: ${train_ds_meta.sample_weight}
+          audio_tar_filepaths: ${train_ds_meta.audio_tar_filepaths}
           # mls_english:
           #   manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/tarred_audio/train_manifest.json
           #   tar_filepath: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/mls_english/filtered_22khz/tarred_audio/audio_{0..1999}.tar
