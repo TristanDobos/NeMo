@@ -89,7 +89,7 @@ model:
       #   batch_size: 32
       #   steps_per_epoch: 1000
       #   dataset_weights: [0.75, 0.25]
-      shuffle_n: 10000
+      # shuffle_n: 10000
     dataloader_params:
       batch_size: 32
       drop_last: true
