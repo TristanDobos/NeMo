@@ -1,7 +1,7 @@
 name: NanoCodecWithMetricsWPesqPaper
 
 max_epochs: 200
-batch_size: 8
+batch_size: 16
 weighted_sampling_steps_per_epoch: null
 
 log_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/logs
