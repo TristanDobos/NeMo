@@ -96,19 +96,19 @@ model:
       num_workers: 4
   validation_ds:
     dataset:
-      dataset_type: vocoder
-      dataset_args:
-        sample_rate: 22050
-        n_samples: null
-        min_duration: null
-        max_duration: null
-        trunc_duration: 10.0
-        dataset_meta:
-          librispeech:
-            manifest_path: ${val_ds_meta.manifest_path}
-            audio_dir: ${val_ds_meta.audio_dir}
-            sample_weight: ${val_ds_meta.sample_weight}
-            audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
+      _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
+      sample_rate: ${sample_rate}
+      n_samples: null
+      min_duration: null
+      max_duration: null
+      trunc_duration: 10.0 # Only use the first 10 seconds of audio for computing validation loss
+      dataset_meta:
+        # - _target_: nemo.collections.tts.data.vocoder_dataset.DatasetMeta   # include to be extra explicit
+        librispeech:
+          manifest_path: ${val_ds_meta.manifest_path}
+          audio_dir: ${val_ds_meta.audio_dir}
+          sample_weight: ${val_ds_meta.sample_weight}
+          audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
     dataloader_params:
       batch_size: 4
       num_workers: 2
