@@ -79,17 +79,17 @@ model:
           # cv:
           #   manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/tarred_audio/train_manifest.json
           #   tar_filepath: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/tarred_audio/audio_{0..279}.tar
-        sample_rate: 22050
-        n_samples: 24696
-        min_duration: 0.4
-        max_duration: null
-        shard_strategy: replicate
-        sample_type: weighted_random
-        sample_args:
-          batch_size: 32
-          steps_per_epoch: 1000
-          dataset_weights: [0.75, 0.25]
-        shuffle_n: 10000
+      sample_rate: 22050
+      n_samples: 24696
+      min_duration: 0.4
+      max_duration: null
+      shard_strategy: replicate
+      sample_type: weighted_random
+      sample_args:
+        batch_size: 32
+        steps_per_epoch: 1000
+        dataset_weights: [0.75, 0.25]
+      shuffle_n: 10000
     dataloader_params:
       batch_size: 32
       drop_last: true
