@@ -24,6 +24,9 @@ import torch.nn.functional as F
 from einops import rearrange
 from transformers import AutoModel
 
+import math
+from typing import Tuple
+
 from nemo.collections.asr.modules import AudioToMelSpectrogramPreprocessor
 from nemo.collections.common.parts.utils import ClampActivation, HalfSnake, Snake, mask_sequence_tensor
 from nemo.core.classes.common import typecheck
@@ -1148,6 +1151,192 @@ class VectorQuantizerBase(NeuralModule, ABC):
     def decode(self, indices: torch.Tensor, input_len: torch.Tensor) -> torch.Tensor:
         pass
 
+
+class BinarySphericalQuantizer(VectorQuantizerBase):
+    """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
+
+    This quantizer uses an implicit binary codebook of size 2^dim. Quantization is done by
+    taking the sign of each input dimension and projecting to the hypersphere with entries
+    ±1/sqrt(dim).
+
+    Args:
+        codebook_size: Number of binary codes in the codebook. Must be a power of 2.
+    """
+
+    def __init__(self, dim: int, codebook_size: Optional[int] = None):
+        super().__init__()
+
+        if dim <= 0:
+            raise ValueError(f"dim must be positive, got {dim}")
+
+        expected_codebook_size = 2 ** dim
+        if codebook_size is None:
+            codebook_size = expected_codebook_size
+        elif codebook_size != expected_codebook_size:
+            raise ValueError(
+                f"For BinarySphericalQuantizer, codebook_size must equal 2**dim. "
+                f"Got dim={dim}, codebook_size={codebook_size}, expected={expected_codebook_size}"
+            )
+
+        self._dim = dim
+        self._codebook_size = codebook_size
+
+        self.register_buffer(
+            "codebook_value",
+            torch.tensor(1.0 / math.sqrt(self._dim), dtype=torch.float32),
+            persistent=False,
+        )
+        self.register_buffer(
+            "mask",
+            2 ** torch.arange(self._dim - 1, -1, -1, dtype=torch.long),
+            persistent=False,
+        )
+
+        # DO NOT materialize the full codebook for realistic dims.
+        self._codebook = None
+
+        # Explicit codebook for compatibility / inspection
+        all_codes = torch.arange(self._codebook_size, dtype=torch.int64)
+        bits = (all_codes[..., None] & self.mask) != 0
+        codebook = self._bits_to_codes(bits.to(torch.float32)) * self.codebook_value
+        self.register_buffer("implicit_codebook", codebook, persistent=False)
+
+        logging.debug("Initializing %s with", self.__class__.__name__)
+        logging.debug("\tdim:           %s", self.dim)
+        logging.debug("\tcodebook_size: %s", self.codebook_size)
+
+    @property
+    def codebook_size(self):
+        return self._codebook_size
+
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def codebook_dim(self):
+        # Keep for compatibility with other quantizers
+        return self.dim
+
+    @property
+    def codes(self):
+        # [codebook_size, dim]
+        return self.implicit_codebook
+
+    @property
+    def codebook(self):
+        return self.codes
+
+    def _bits_to_codes(self, bits: torch.Tensor) -> torch.Tensor:
+        return bits * 2.0 - 1.0
+
+    @torch.jit.export
+    def lats_to_codes(self, lats: torch.Tensor) -> torch.Tensor:
+        """Convert latent vectors (..., dim) to quantized binary spherical codes (..., dim)."""
+        return torch.where(lats > 0, self.codebook_value, -self.codebook_value)
+
+    @torch.jit.export
+    def codes_to_toks(self, codes: torch.Tensor) -> torch.Tensor:
+        """Convert codes (..., dim) to token indices (...)."""
+        return ((codes > 0).to(self.mask.dtype) * self.mask).sum(dim=-1)
+
+    @torch.jit.export
+    def lats_to_toks(self, lats: torch.Tensor) -> torch.Tensor:
+        """Convert latent vectors (..., dim) directly to token indices (...)."""
+        codes = self.lats_to_codes(lats)
+        return self.codes_to_toks(codes)
+
+    @torch.jit.export
+    def toks_to_codes(self, toks: torch.Tensor) -> torch.Tensor:
+        """Convert token indices (...) to codes (..., dim)."""
+        bits = ((toks[..., None].to(self.mask.dtype) // self.mask) % 2).to(self.codebook_value.dtype)
+        return self._bits_to_codes(bits) * self.codebook_value
+
+    @typecheck()
+    def forward(
+        self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Quantize inputs and return dequantized codes plus indices.
+
+        Args:
+            inputs: Tensor of shape [B, D, T]
+            input_len: Optional lengths tensor [B]
+
+        Returns:
+            dequantized: Tensor of shape [B, D, T]
+            indices: Tensor of shape [1, B, T]
+        """
+        if inputs.size(1) != self.dim:
+            raise RuntimeError(
+                f"Input dimension {inputs.size(1)} does not match expected dimension {self.dim}, "
+                f"input shape: {inputs.shape}"
+            )
+
+        # [B, D, T] -> [B, T, D]
+        inputs_bt_d = rearrange(inputs, "B D T -> B T D")
+
+        # quantize
+        dequantized_bt_d = self.lats_to_codes(inputs_bt_d)
+        indices_bt = self.codes_to_toks(dequantized_bt_d)
+
+        # straight-through estimator
+        dequantized_bt_d = inputs_bt_d + (dequantized_bt_d - inputs_bt_d).detach()
+
+        # back to [B, D, T]
+        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
+
+        if input_len is not None:
+            dequantized = mask_sequence_tensor(dequantized, input_len)
+            indices_bt = mask_sequence_tensor(indices_bt, input_len)
+
+        # match RVQ/FSQ API: [num_codebooks, B, T]
+        indices = indices_bt.unsqueeze(0)
+        return dequantized, indices
+
+    @typecheck(
+        input_types={
+            "inputs": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={"indices": NeuralType(('D', 'B', 'T'), Index())},
+    )
+    def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
+        _, indices = self(inputs=inputs, input_len=input_len)
+        return indices
+
+    @typecheck(
+        input_types={
+            "indices": NeuralType(('D', 'B', 'T'), Index()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={
+            "dequantized": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+        },
+    )
+    def decode(self, indices: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Decode token indices [1, B, T] to quantized codes [B, D, T]."""
+        if indices.size(0) != 1:
+            raise ValueError(
+                f"Expected a single codebook, got {indices.size(0)} codebooks for indices with shape {indices.shape}."
+            )
+
+        # [1, B, T] -> [B, T]
+        indices_bt = indices.squeeze(0)
+
+        # [B, T] -> [B, T, D]
+        dequantized_bt_d = self.toks_to_codes(indices_bt)
+
+        # [B, T, D] -> [B, D, T]
+        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
+
+        if input_len is not None:
+            dequantized = mask_sequence_tensor(dequantized, input_len)
+
+        return dequantized
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(codebook_size={self.codebook_size}, dim={self.dim})"
 
 class FiniteScalarQuantizer(VectorQuantizerBase):
     """This quantizer is based on the Finite Scalar Quantization (FSQ) method.
