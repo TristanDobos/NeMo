@@ -30,7 +30,7 @@ ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlim
 
 # Default values
 CONFIG_PATH="conf/audio_codec"
-CONFIG_NAME="my_nanocodec_paper_config_v1.yaml"
+CONFIG_NAME="audio_codec_low_frame_rate_22050_focalcodec.yaml"
 
 # Function to display help
 show_help() {
@@ -44,7 +44,7 @@ show_help() {
   echo "  --help                 Show this help message and exit"
   echo
   echo "Example:"
-  echo "  $0 --config-path conf/custom --config-name my_audio_config.yaml"
+  echo "  $0 --config-path conf/custom --config-name audio_codec_low_frame_rate_22050_focalcodec.yaml"
   exit 0
 }
 
