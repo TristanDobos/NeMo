@@ -6,7 +6,8 @@ name: Focalcodec
 
 max_epochs: 200 # 250 initally
 # Adjust batch size based on GPU memory
-batch_size: 8
+batch_size: 1
+workers_num: 1
 # When doing weighted sampling with multiple manifests, this defines how many training steps are in an epoch.
 # If null, then weighted sampling is disabled.
 weighted_sampling_steps_per_epoch: null
@@ -42,6 +43,7 @@ up_sample_rates: [8, 8, 4, 2, 2]
 down_sample_rates: [2, 2, 4, 8, 8]
 
 num_codebooks: 8
+encoder_in_dim: 16
 encoder_out_dim: 10
 
 model:
@@ -98,7 +100,7 @@ model:
     dataloader_params:
       batch_size: ${batch_size}
       drop_last: true
-      num_workers: 8
+      num_workers: ${workers_num}
 
   validation_ds:
     dataset:
@@ -117,8 +119,8 @@ model:
           audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
 
     dataloader_params:
-      batch_size: 4
-      num_workers: 4
+      batch_size: ${batch_size}
+      num_workers: ${workers_num}
 
   # Configures how audio samples are generated and saved during training.
   # Remove this section to disable logging.
@@ -150,18 +152,20 @@ model:
           audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
 
     dataloader_params:
-      batch_size: 4
-      num_workers: 2
+      batch_size: ${batch_size}
+      num_workers: ${workers_num}
 
   audio_encoder:
     _target_: nemo.collections.tts.modules.focalnet.FocalEncoder
     input_dim: ${encoder_in_dim}
     output_dim: ${encoder_out_dim}
+    debug: true
 
   audio_decoder:
     _target_: nemo.collections.tts.modules.focalnet.FocalDecoder
     input_dim: ${encoder_out_dim}
-    output_dim: ${decoder_out_dim}
+    output_dim: ${encoder_in_dim}
+    debug: true
 
   vector_quantizer:
     _target_: nemo.collections.tts.modules.audio_codec_modules.BinarySphericalQuantizer
@@ -190,10 +194,10 @@ model:
   discriminator_loss:
     _target_: nemo.collections.tts.losses.audio_codec_loss.DiscriminatorSquaredLoss
 
-  metrics:
-    - stoi
-    - pesq
-    - sisdr
+  # metrics:
+  #   - stoi
+  #   - pesq
+  #   - sisdr
   # metrics:
   # val:
   #   sisdr: # output SI-SDR
