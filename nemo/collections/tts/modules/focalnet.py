@@ -24,7 +24,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import Size, Tensor, nn
-
+from einops import rearrange
 
 __all__ = ["FocalDecoder", "FocalEncoder"]
 
@@ -634,7 +634,7 @@ class DownScale(nn.Module):
             stride,
         )
         self.activation = Snake1d(output_dim)
-        self.stem = nn.Conv1d(in_channels=1, out_channels=1024, kernel_size=7, padding=3)
+        self.stem = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=7, padding=3)
 
     def forward(
         self,
@@ -1115,6 +1115,7 @@ class FocalEncoder(nn.Module):
         normalize_modulator: "bool" = False,
         causal: "bool" = False,
         window_size: "int" = 512,
+        debug: "bool" = False,
     ) -> "None":
         super().__init__()
         self.input_dim = input_dim
@@ -1134,6 +1135,10 @@ class FocalEncoder(nn.Module):
         self.window_size = window_size
         self.downsample_factor = torch.Size(downscale_factors).numel()
         self.chunk_size = self.downsample_factor
+        self.left_contexts: Optional[List[Tensor]] = None
+        self.debug = debug
+
+        self.stem = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=7, padding=3)
 
         print(
             "Initialized FocalEncoder with "
@@ -1179,7 +1184,81 @@ class FocalEncoder(nn.Module):
     def modulators(self) -> "List[Tensor]":
         return [layer.modulator for layer in self.layers]
 
-    def forward(
+    def initialize_left_contexts(batch_size, input_dim, output_dim, kernel_sizes, window_size, device):
+        contexts = []
+        for i, k in enumerate(kernel_sizes):
+            if i == 0:
+                # First layer: uses input_dim
+                shape = (batch_size, k - 1, input_dim)
+            elif i == len(kernel_sizes) - 1:
+                # Last layer: uses window_size and output_dim
+                shape = (batch_size, window_size - 1, output_dim)
+            else:
+                # Middle layers: use output_dim
+                shape = (batch_size, k - 1, output_dim)
+                
+            contexts.append(torch.zeros(shape, device=device))
+        return contexts
+
+    def forward(self, audio: Tensor, audio_len: Tensor):
+            # Prepare input: [B, T] -> [B, T, 1] 
+            # (Matches docstring: batch_size, seq_length, input_dim)
+            x = audio.unsqueeze(1) 
+
+            # Result: [4, 1, 221184] (Batch, Channels, Time)
+            if self.debug:  
+                print("!!!!: the input shape for stem is ", x.shape)
+
+            # 3. Apply the stem (This turns 1 channel into 16 channels)
+            x = self.stem(x) 
+
+            # Result: [4, 16, 221184]
+            if self.debug:  
+                print("!!!!: the input shape after stem is ", x.shape)
+
+            x = x.transpose(1, 2)
+
+            if self.debug:  
+                print("!!!!: the input shape after transpose is ", x.shape)
+
+            new_contexts = []
+
+            for i, layer in enumerate(self.layers):
+                # Use stored context if available, else None
+                current_context = self.left_contexts[i] if self.left_contexts is not None else None
+                
+                x, layer_new_context = layer(x, current_context)
+                new_contexts.append(layer_new_context)
+
+            # Store updated contexts internally for the next call
+            self.left_contexts = new_contexts
+
+            if x.shape[1] == 1024: # If channels are still in the middle
+                print("13!!!!: the input shape before final transpose is ", x.shape)
+                x = x.transpose(1, 2)
+                print("13!!!!: the input shape after final transpose is ", x.shape)
+
+            # Final Processing
+            x = self.dropout(x)
+            encoded = self.out_proj(x)
+
+            if self.debug:
+                print("13!!!!: the encoded shape is ", encoded.shape)
+                print("13!!!!: the audio_len is ", audio_len)
+            
+            # Handle Lengths (Downscaling logic)
+            # encoded_len = audio_len // self.hop_length
+            encoded_len = audio_len # Adjust this based on your downscaling factor
+
+            encoded = encoded.transpose(1, 2)
+
+            return encoded, encoded_len
+
+    def reset_streaming_state(self):
+        """Call this between different audio files/sessions."""
+        self.left_contexts = None
+    
+    def forward_old(
         self,
         input: "Tensor",
         left_contexts: "Optional[List[Optional[List[Optional[Tensor]]]]]" = None,
@@ -1284,6 +1363,7 @@ class FocalDecoder(nn.Module):
         window_size: "int" = 512,
         last_window_size: "int" = 512,
         lookahead_size: "int" = 3,
+        debug: "bool" = False,  
     ) -> "None":
         super().__init__()
         self.input_dim = input_dim
@@ -1305,6 +1385,8 @@ class FocalDecoder(nn.Module):
         self.lookahead_size = lookahead_size
         self.upsample_factor = torch.Size(upscale_factors).numel()
         self.chunk_size = 1 + lookahead_size
+        self.left_contexts: Optional[List[Tensor]] = None
+        self.debug = debug
 
         # Modules
         hidden_dims = tuple(hidden_dims) + (output_dim,)
@@ -1313,6 +1395,8 @@ class FocalDecoder(nn.Module):
         self.in_proj = nn.Linear(input_dim, output_dim)
         self.dropout = nn.Dropout(dropout)
         self.layers = nn.ModuleList()
+
+        self.final_proj = nn.Linear(16, 1)
 
         print(
             "Initialized FocalDecoder with "
@@ -1367,47 +1451,58 @@ class FocalDecoder(nn.Module):
     def modulators(self) -> "List[Tensor]":
         return [layer.modulator for layer in self.layers]
 
-    def forward(
-        self,
-        input: "Tensor",
-        left_contexts: "Optional[List[Optional[List[Optional[Tensor]]]]]" = None,
-    ) -> "Tuple[Tensor, List[List[Optional[Tensor]]]]":
-        """Forward pass.
+    def forward(self, inputs: Tensor, input_len: Tensor):
+        """Forward pass."""
+        
+        # 1. Variable Fix: Use 'inputs' (parameter name) not 'input' (Python keyword)
+        # If inputs is [B, C, T], swap to [B, T, C] for the Linear in_proj layer
+        if inputs.shape[-1] != self.input_dim:
+            x = inputs.transpose(1, 2)
+        else:
+            x = inputs
 
-        Parameters
-        ----------
-        input:
-            Input tensor of shape (batch_size, seq_length, input_dim).
-        left_contexts:
-            Left contexts for each layer.
-            If provided, each tensor in the inner list should be of shape (batch_size, kernel_size_i - 1, input_dim),
-            except for the second last, which should be of shape (batch_size, window_size - 1, input_dim),
-            and the last, which should be of shape (batch_size, kernel_size_k - 1, output_dim).
-
-        Returns
-        -------
-            - Output tensor of shape (batch_size, seq_length * prod(upscale_factors), output_dim);
-            - updated left contexts for each layer.
-
-        """
-        new_left_contexts: List[List[Optional[Tensor]]] = []
-        output = self.in_proj(input)
+        # 2. Projection and Dropout
+        # in_proj: [B, T, input_dim] -> [B, T, hidden_dim]
+        output = self.in_proj(x)
         output = self.dropout(output)
 
-        print(f"Decoder input shape: {input.shape}")
-        print(f"Decoder output shape: {output.shape}")
+        if self.debug:
+            print(f"Decoder processing shape: {output.shape}")
 
+        # 3. Iterate through layers
+        new_left_contexts = []
+        
         for i, layer in enumerate(self.layers):
-            output, new_left_contexts_i = layer(
-                output,
-                None if left_contexts is None else left_contexts[i],
-            )
-            new_left_contexts.append(new_left_contexts_i)
+            # Use stored context if available
+            current_context = self.left_contexts[i] if self.left_contexts is not None else None
+            
+            # Layer call
+            output, layer_new_context = layer(output, current_context)
+            new_left_contexts.append(layer_new_context)
 
+        # 4. Store updated contexts internally
+        self.left_contexts = new_left_contexts
+
+        # 5. Causal Refiner
         if self.causal and self.lookahead_size > 0:
             output = self.refiner(output)
 
-        return output, new_left_contexts
+        # Note: encoded_len logic should match upscale_factors if needed
+        if self.debug:
+            print(f"Decoder output shape before return: {output.shape}")
+            print(f"Decoder input_len: {input_len}")
+
+        audio = self.final_proj(output) 
+
+        audio = audio.squeeze(-1)
+        # audio_len = audio_len # Ensure this is still [4]
+
+
+        if self.debug:
+            print(f"Final audio shape: {audio.shape}")
+        # print(f"Final audio_len: {audio_len}")
+        # print(torch.cuda.memory_summary())
+        return audio, input_len
 
 
 def test_model() -> "None":
