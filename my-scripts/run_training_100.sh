@@ -13,6 +13,7 @@ init_conda() {
  fi
  unset __conda_setup
 }
+ulimit -f unlimited -t unlimited -v unlimited -u $(ulimit -Hu) -i $(ulimit -Hi) -s unlimited -n $(ulimit -Hn)
 
 init_conda
 conda activate nemo

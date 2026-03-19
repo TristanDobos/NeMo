@@ -25,7 +25,7 @@ init_conda() {
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
 
-ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
+ulimit -f unlimited -t unlimited -v unlimited -u $(ulimit -Hu) -i $(ulimit -Hi) -s unlimited -n $(ulimit -Hn)
 
 
 # Default values

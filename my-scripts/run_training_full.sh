@@ -22,6 +22,8 @@ cd /mnt/matylda6/xdobos00/NeMo/examples/tts
 
 export WANDB_MODE=offline
 
+ulimit -f unlimited -t unlimited -v unlimited -u $(ulimit -Hu) -i $(ulimit -Hi) -s unlimited -n $(ulimit -Hn)
+
 # Default values
 CONFIG_PATH="conf/audio_codec"
 CONFIG_NAME="audio_codec_low_frame_rate_22050_nanocodec_nowavlm_bigger.yaml"
