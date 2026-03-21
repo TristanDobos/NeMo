@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-1.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-1.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-With-MetricsNew.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-With-MetricsNew.err            # standard error log file
 
 
 ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
@@ -73,7 +73,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 3)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
 
