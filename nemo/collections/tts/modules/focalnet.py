@@ -1185,7 +1185,7 @@ class FocalEncoder(nn.Module):
         if self.debug:  
             print("!!!!: the input shape after stem is ", x.shape)
 
-        x = x.transpose(1, 2)
+        output = x.transpose(1, 2)
 
         if self.debug:  
             print("!!!!: the input shape after transpose is ", x.shape)
