@@ -1363,8 +1363,22 @@ class FocalDecoder(nn.Module):
             print(f"FocalDecoder input sample: {inputs[0, :5]}")
             print(f"Average of absolute values in input: {inputs.abs().mean().item()}")
 
-        output = self.in_proj(input)
+
+        if inputs.shape[-1] != self.input_dim:
+            x = inputs.transpose(1, 2)
+        else:
+            x = inputs
+
+
+        if self.debug:
+            print("AFTER TRANSPOSE (if applied):")
+            print(f"FocalDecoder input for in_proj shape: {x.shape}")
+            print(f"FocalDecoder input for in_proj sample: {x[0, :5]}")
+            print(f"Average of absolute values in input for in_proj: {x.abs().mean().item()}")
+
+        output = self.in_proj(x)
         output = self.dropout(output)
+
         for _, layer in enumerate(self.layers):
             output, _ = layer(
                 output,
@@ -1377,8 +1391,20 @@ class FocalDecoder(nn.Module):
             print(f"FocalDecoder output sample: {output[0, :5]}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
-        if self.causal and self.lookahead_size > 0:
-            output = self.refiner(output)
+        if self.debug:
+            print("AFTER IN_PROJ:")
+            print(f"FocalDecoder output shape: {output.shape}")
+            print(f"FocalDecoder output sample: {output[0, :5]}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
+            print(f"before squeeze, output shape: {output.shape}")
+
+        output = output.squeeze(-1)
+
+        if self.debug:
+            print("AFTER SQUEEZE:")
+            print(f"FocalDecoder output shape: {output.shape}")
+            print(f"FocalDecoder output sample: {output[0, :5]}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         return output, input_len
 
