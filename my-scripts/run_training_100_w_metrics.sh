@@ -3,7 +3,7 @@
 #$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-4.err            # standard error log file
 
 
-ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
+ulimit -f unlimited -t unlimited -v unlimited -u $(ulimit -Hu) -i $(ulimit -Hi) -s unlimited -n $(ulimit -Hn)
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"

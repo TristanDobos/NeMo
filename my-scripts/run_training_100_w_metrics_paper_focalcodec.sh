@@ -1,9 +1,9 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-5.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-5.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-With-MetricsNew.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-With-MetricsNew.err            # standard error log file
 
 
-ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
+ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
 
 init_conda() {
  __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
@@ -25,12 +25,11 @@ init_conda() {
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
 
-ulimit -f unlimited -t unlimited -v unlimited -u $(ulimit -Hu) -i $(ulimit -Hi) -s unlimited -n $(ulimit -Hn)
 
 
 # Default values
 CONFIG_PATH="conf/audio_codec"
-CONFIG_NAME="my_nanocodec_paper_config_v1.yaml"
+CONFIG_NAME="audio_codec_low_frame_rate_22050_focalcodec.yaml"
 
 # Function to display help
 show_help() {
@@ -44,7 +43,7 @@ show_help() {
   echo "  --help                 Show this help message and exit"
   echo
   echo "Example:"
-  echo "  $0 --config-path conf/custom --config-name my_audio_config.yaml"
+  echo "  $0 --config-path conf/custom --config-name audio_codec_low_frame_rate_22050_focalcodec.yaml"
   exit 0
 }
 
@@ -70,16 +69,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 3)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-# python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
-
-
 
 
 # hydra - konfigy hierarchicky!!!
@@ -93,4 +88,3 @@ python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$C
 # ma sa konvergovat do par hodin - napisat mu, ak nie bez low frame
 
 # sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/ && sleep 300 &&  wandb sync /homes/eva/xd/xdobos00/.wandb_osh_command_dir/wandb/offline-run-20260106_194446-xhkchwl2/
-
