@@ -1209,13 +1209,13 @@ class FocalEncoder(nn.Module):
 
         encoded_len = audio_len
 
-        encoded = output
+        output = output.transpose(1, 2)
 
         if self.debug:
             print("AFTER TRANSPOSE:")
-            print(f"FocalEncoder output (transposed) shape: {encoded.shape}")
-            print(f"FocalEncoder output (transposed) sample: {encoded[0, :5]}")
-            print(f"Average of absolute values in encoded: {encoded.abs().mean().item()}")
+            print(f"FocalEncoder output (transposed) shape: {output.shape}")
+            print(f"FocalEncoder output (transposed) sample: {output[0, :5]}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         return output, encoded_len
 
