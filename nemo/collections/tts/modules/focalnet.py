@@ -1209,7 +1209,7 @@ class FocalEncoder(nn.Module):
 
         encoded_len = audio_len
 
-        encoded = output.transpose(1, 2)
+        encoded = output
 
         if self.debug:
             print("AFTER TRANSPOSE:")
