@@ -1127,6 +1127,8 @@ class FocalEncoder(nn.Module):
 
         self.debug = debug
 
+        self.stem = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=7, padding=3)
+
         # Modules
         self.layers = nn.ModuleList()
         for hidden_dim, downscale_factor in zip(hidden_dims, downscale_factors):
@@ -1173,7 +1175,21 @@ class FocalEncoder(nn.Module):
             - updated left contexts for each layer.
 
         """
-        output = audio
+        x = audio.unsqueeze(1) 
+
+        if self.debug:  
+            print("!!!!: the input shape for stem is ", x.shape)
+
+        x = self.stem(x) 
+
+        if self.debug:  
+            print("!!!!: the input shape after stem is ", x.shape)
+
+        x = x.transpose(1, 2)
+
+        if self.debug:  
+            print("!!!!: the input shape after transpose is ", x.shape)
+
         for _, layer in enumerate(self.layers):
             output, _ = layer(
                 output,
