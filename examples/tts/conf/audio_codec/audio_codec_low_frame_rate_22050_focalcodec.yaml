@@ -245,7 +245,7 @@ exp_manager:
   wandb_logger_kwargs:
     mode: offline
     name: ${name}
-    project: focalcodec-hundred-training-w-metrics-w-pesq
+    project: focalcodec-v1
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
