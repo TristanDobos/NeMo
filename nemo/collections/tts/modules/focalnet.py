@@ -1310,6 +1310,8 @@ class FocalDecoder(nn.Module):
 
         self.debug = debug
 
+        self.final_proj = nn.Linear(16, 1)
+
         # Modules
         hidden_dims = tuple(hidden_dims) + (output_dim,)
         output_dim = hidden_dims[0]
