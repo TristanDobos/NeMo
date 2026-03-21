@@ -73,12 +73,12 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 3)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
 
 # hydra - konfigy hierarchicky!!!
-# conf z nanocodecu
+# conf z nanocodecuqsub -N focalcodec -q long.q -l gpu=4,gpu_ram=20G,ram_free=20G,mem_free=20G,matylda6=1 /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_100_w_metrics_paper_focalcodec.sh
 
 
 # submit to long queue
