@@ -1159,22 +1159,13 @@ class FocalEncoder(nn.Module):
     def modulators(self) -> "List[Tensor]":
         return [layer.modulator for layer in self.layers]
 
-    def forward(
-        self,
-        input: "Tensor",
-        left_contexts: "Optional[List[Optional[List[Optional[Tensor]]]]]" = None,
-    ) -> "Tuple[Tensor, List[List[Optional[Tensor]]]]":
+    def forward(self, audio: Tensor, audio_len: Tensor):
         """Forward pass.
 
         Parameters
         ----------
-        input:
-            Input tensor of shape (batch_size, seq_length, input_dim).
-        left_contexts:
-            Left contexts for each layer.
-            If provided, each tensor in the inner list should be of shape (batch_size, kernel_size_i - 1, output_dim),
-            except for the first, which should be of shape (batch_size, kernel_size_0 - 1, input_dim),
-            and the last, which should be of shape (batch_size, window_size - 1, output_dim).
+        audio
+        audio_len
 
         Returns
         -------
@@ -1182,18 +1173,35 @@ class FocalEncoder(nn.Module):
             - updated left contexts for each layer.
 
         """
-        new_left_contexts: List[List[Optional[Tensor]]] = []
-        output = input
-        for i, layer in enumerate(self.layers):
-            output, new_left_contexts_i = layer(
+        output = audio
+        for _, layer in enumerate(self.layers):
+            output, _ = layer(
                 output,
-                None if left_contexts is None else left_contexts[i],
+                None,
             )
-            new_left_contexts.append(new_left_contexts_i)
+
         output = self.dropout(output)
         output = self.out_proj(output)
-        return output, new_left_contexts
 
+        if self.debug:
+            print("BEFORE TRANSPOSE:")
+            print(f"Input audio shape: {audio.shape}")
+            print(f"Input audio_len shape: {audio_len.shape}")
+            print(f"FocalEncoder output shape: {output.shape}")
+            print(f"FocalEncoder output sample: {output[0, :5]}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
+
+        encoded_len = audio_len
+
+        encoded = encoded.transpose(1, 2)
+
+        if self.debug:
+            print("AFTER TRANSPOSE:")
+            print(f"FocalEncoder output (transposed) shape: {encoded.shape}")
+            print(f"FocalEncoder output (transposed) sample: {encoded[0, :5]}")
+            print(f"Average of absolute values in encoded: {encoded.abs().mean().item()}")
+
+        return output, encoded_len
 
 class FocalDecoder(nn.Module):
     """Focal decoder that applies a series of focal upscale layers.
@@ -1333,22 +1341,14 @@ class FocalDecoder(nn.Module):
     def modulators(self) -> "List[Tensor]":
         return [layer.modulator for layer in self.layers]
 
-    def forward(
-        self,
-        input: "Tensor",
-        left_contexts: "Optional[List[Optional[List[Optional[Tensor]]]]]" = None,
-    ) -> "Tuple[Tensor, List[List[Optional[Tensor]]]]":
+    def forward(self, inputs: Tensor, input_len: Tensor):
         """Forward pass.
 
         Parameters
         ----------
-        input:
-            Input tensor of shape (batch_size, seq_length, input_dim).
-        left_contexts:
-            Left contexts for each layer.
-            If provided, each tensor in the inner list should be of shape (batch_size, kernel_size_i - 1, input_dim),
-            except for the second last, which should be of shape (batch_size, window_size - 1, input_dim),
-            and the last, which should be of shape (batch_size, kernel_size_k - 1, output_dim).
+        inputs
+        input_len
+            
 
         Returns
         -------
@@ -1356,20 +1356,31 @@ class FocalDecoder(nn.Module):
             - updated left contexts for each layer.
 
         """
-        new_left_contexts: List[List[Optional[Tensor]]] = []
+
+        if self.debug:
+            print("BEFORE IN_PROJ:")
+            print(f"FocalDecoder input shape: {inputs.shape}")
+            print(f"FocalDecoder input sample: {inputs[0, :5]}")
+            print(f"Average of absolute values in input: {inputs.abs().mean().item()}")
+
         output = self.in_proj(input)
         output = self.dropout(output)
-        for i, layer in enumerate(self.layers):
-            output, new_left_contexts_i = layer(
+        for _, layer in enumerate(self.layers):
+            output, _ = layer(
                 output,
-                None if left_contexts is None else left_contexts[i],
+                None
             )
-            new_left_contexts.append(new_left_contexts_i)
+
+        if self.debug:
+            print("AFTER LAYERS:")
+            print(f"FocalDecoder output shape: {output.shape}")
+            print(f"FocalDecoder output sample: {output[0, :5]}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         if self.causal and self.lookahead_size > 0:
             output = self.refiner(output)
 
-        return output, new_left_contexts
+        return output, input_len
 
 
 def test_model() -> "None":
