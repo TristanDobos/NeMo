@@ -1104,6 +1104,7 @@ class FocalEncoder(nn.Module):
         normalize_modulator: "bool" = False,
         causal: "bool" = False,
         window_size: "int" = 512,
+        debug: "bool" = False,
     ) -> "None":
         super().__init__()
         self.input_dim = input_dim
@@ -1123,6 +1124,8 @@ class FocalEncoder(nn.Module):
         self.window_size = window_size
         self.downsample_factor = torch.Size(downscale_factors).numel()
         self.chunk_size = self.downsample_factor
+
+        self.debug = debug
 
         # Modules
         self.layers = nn.ModuleList()
@@ -1257,6 +1260,7 @@ class FocalDecoder(nn.Module):
         window_size: "int" = 512,
         last_window_size: "int" = 512,
         lookahead_size: "int" = 3,
+        debug: "bool" = False,
     ) -> "None":
         super().__init__()
         self.input_dim = input_dim
@@ -1278,6 +1282,8 @@ class FocalDecoder(nn.Module):
         self.lookahead_size = lookahead_size
         self.upsample_factor = torch.Size(upscale_factors).numel()
         self.chunk_size = 1 + lookahead_size
+
+        self.debug = debug
 
         # Modules
         hidden_dims = tuple(hidden_dims) + (output_dim,)
