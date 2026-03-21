@@ -1209,10 +1209,11 @@ class FocalEncoder(nn.Module):
 
         encoded_len = audio_len
 
-        # output = output.transpose(1, 2)
+        output = output.transpose(1, 2)
+        # RuntimeError: Input dimension 167936 does not match expected dimension 10, input shape: torch.Size([1, 167936, 10])
 
         if self.debug:
-            print("AFTER TRANSPOSE:")
+            print("with output = output.transpose(1, 2) AFTER TRANSPOSE:")
             print(f"FocalEncoder output (transposed) shape: {output.shape}")
             print(f"FocalEncoder output (transposed) sample: {output[0, :5]}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
