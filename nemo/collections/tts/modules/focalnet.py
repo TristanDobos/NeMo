@@ -1415,6 +1415,7 @@ class FocalDecoder(nn.Module):
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
             print(f"before squeeze, output shape: {output.shape}")
 
+        output = self.final_proj(output) 
         output = output.squeeze(-1)
 
         if self.debug:
