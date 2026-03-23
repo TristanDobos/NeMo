@@ -377,9 +377,16 @@ class AudioCodecModel(ModelPT):
             raise ValueError("Cannot quantize without quantizer")
 
         # vector quantizer is returning [C, B, T], where C is the number of codebooks
+        print("HEREEEE")
+        print("to be quantized: ", encoded.shape, encoded_len)
+        print("encoded first values: ", encoded[0, :5, :5])
         tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
+        print("tokens first values: ", tokens[0, :5, :5])
+
         # use batch first for the output
         tokens = rearrange(tokens, 'C B T -> B C T')
+        print("rearranged first values: ", tokens[0, :5, :5])
+
         return tokens
 
     @typecheck(

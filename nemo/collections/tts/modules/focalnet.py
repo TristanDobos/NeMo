@@ -1379,7 +1379,7 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("BEFORE IN_PROJ:")
             print(f"FocalDecoder input shape: {inputs.shape}")
-            print(f"FocalDecoder input sample: {inputs[0, :5]}")
+            print(f"FocalDecoder input sample: {inputs[0, :5, :5]}")
             print(f"Average of absolute values in input: {inputs.abs().mean().item()}")
 
 
@@ -1392,7 +1392,7 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("AFTER TRANSPOSE (if applied):")
             print(f"FocalDecoder input for in_proj shape: {x.shape}")
-            print(f"FocalDecoder input for in_proj sample: {x[0, :5]}")
+            print(f"FocalDecoder input for in_proj sample: {x[0, :5, :5]}")
             print(f"Average of absolute values in input for in_proj: {x.abs().mean().item()}")
 
         output = self.in_proj(x)
@@ -1407,13 +1407,13 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("AFTER LAYERS:")
             print(f"FocalDecoder output shape: {output.shape}")
-            print(f"FocalDecoder output sample: {output[0, :5]}")
+            print(f"FocalDecoder output sample: {output[0, :5, :5]}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         if self.debug:
             print("AFTER IN_PROJ:")
             print(f"FocalDecoder output shape: {output.shape}")
-            print(f"FocalDecoder output sample: {output[0, :5]}")
+            print(f"FocalDecoder output sample: {output[0, :5, :5]}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
             print(f"before squeeze, output shape: {output.shape}")
 
@@ -1423,7 +1423,7 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("AFTER SQUEEZE:")
             print(f"FocalDecoder output shape: {output.shape}")
-            print(f"FocalDecoder output sample: {output[0, :5]}")
+            print(f"FocalDecoder output sample: {output[0, :5, :5]}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         return output, input_len
