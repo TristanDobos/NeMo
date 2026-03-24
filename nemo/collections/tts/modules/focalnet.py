@@ -26,6 +26,20 @@ import torch
 from torch import Size, Tensor, nn
 
 
+try:
+    from .focalcodec.bsq import BinarySphericalQuantizer
+    from .focalcodec.version import VERSION
+    from .focalcodec.vocos import Vocos
+    from .focalcodec.wavenext import WaveNeXt
+    from .focalcodec.wavlm import WavLM
+except ImportError:
+    from focalcodec.bsq import BinarySphericalQuantizer
+    from focalcodec.version import VERSION
+    from focalcodec.vocos import Vocos
+    from focalcodec.wavenext import WaveNeXt
+    from focalcodec.wavlm import WavLM
+
+
 __all__ = ["FocalDecoder", "FocalEncoder"]
 
 
