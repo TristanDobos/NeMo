@@ -2615,3 +2615,4 @@ class MultiBandMelEncoder(NeuralModule):
         # [B, C, T]
         encoded = torch.cat(outputs, dim=1)
         return encoded, spec_len
+ 
