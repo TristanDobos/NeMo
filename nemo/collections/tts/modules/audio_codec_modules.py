@@ -1188,6 +1188,8 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
         self._dim = dim
         self._codebook_size = codebook_size
+        self.dim = dim
+        self.codebook_size = codebook_size
 
         self.register_buffer(
             "codebook_value",
