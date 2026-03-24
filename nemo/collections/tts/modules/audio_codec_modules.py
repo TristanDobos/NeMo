@@ -1151,6 +1151,16 @@ class VectorQuantizerBase(NeuralModule, ABC):
     def decode(self, indices: torch.Tensor, input_len: torch.Tensor) -> torch.Tensor:
         pass
 
+def return_first_samples(output):
+    if output.dim() == 4:
+        return output[0, 0, 0, :5]
+    elif output.dim() == 3:
+        return output[0, 0, :5]
+    elif output.dim() == 2:
+        return output[0, :5]
+    else:
+        return output
+
 
 class BinarySphericalQuantizer(VectorQuantizerBase):
     """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
@@ -1316,6 +1326,11 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
     def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
         _, indices = self(inputs=inputs, input_len=input_len)
+        print(f"decoding 13131333: encode inputs shape: {inputs.shape}")
+        print(f"decoding some values from inputs: {return_first_samples(inputs)}")
+        print(f"decoding 13131333: indices shape: {indices.shape}")
+        print(f"decoding some values from indices: {return_first_samples(indices)}")
+
         return indices
 
     @typecheck(
@@ -1345,6 +1360,13 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
         if input_len is not None:
             dequantized = mask_sequence_tensor(dequantized, input_len)
+
+        print(f"decoding 13131333: dequantized shape: {dequantized.shape}")
+        print(f"decoding 13131333: indices shape: {indices.shape}")
+        print(f"decoding 13131333: codebook shape: {self.codebook.shape}")
+        print(f"decoding indices: {return_first_samples(indices)}")
+        print(f"decoding dequantized: {return_first_samples(dequantized)}")
+        
 
         return dequantized
 

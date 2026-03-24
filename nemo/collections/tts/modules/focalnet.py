@@ -1214,7 +1214,7 @@ class FocalEncoder(nn.Module):
             print(f"Input audio shape: {audio.shape}")
             print(f"Input audio_len shape: {audio_len.shape}")
             print(f"FocalEncoder output shape: {output.shape}")
-            print(f"FocalEncoder output sample: {output[0, :5]}")
+            print(f"FocalEncoder output sample: {return_first_samples(output)}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         encoded_len = audio_len
