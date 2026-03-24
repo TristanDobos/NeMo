@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-1.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-1.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-2.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-2.err            # standard error log file
 
 
 ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
@@ -93,3 +93,6 @@ python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$C
 
 
 #  The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=31` in the `DataLoader` to improve performance.
+
+
+
