@@ -1227,6 +1227,9 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         logging.debug("Initializing %s with", self.__class__.__name__)
         logging.debug("\tdim:           %s", self.dim)
         logging.debug("\tcodebook_size: %s", self.codebook_size)
+        print("Initializing %s with", self.__class__.__name__)
+        print("\tdim:           %s", self.dim)
+        print("\tcodebook_size: %s", self.codebook_size)
 
     @property
     def codebook_size(self):
