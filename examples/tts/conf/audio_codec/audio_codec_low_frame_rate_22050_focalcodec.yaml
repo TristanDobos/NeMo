@@ -48,7 +48,7 @@ encoder_out_dim: 12
 
 model:
   max_epochs: ${max_epochs}
-  # steps_per_epoch: 50
+  steps_per_epoch: 1000
 
   sample_rate: ${sample_rate}
   samples_per_frame: ${samples_per_frame}
@@ -250,7 +250,7 @@ exp_manager:
   wandb_logger_kwargs:
     mode: offline
     name: ${name}
-    project: focalcodec-v1
+    project: focalcodec-v2
     save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
