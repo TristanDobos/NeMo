@@ -1163,23 +1163,31 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         codebook_size: Number of binary codes in the codebook. Must be a power of 2.
     """
 
-    def __init__(self, dim: int, codebook_size: Optional[int] = None):
+    def __init__(self, dim: int, codebook_size: int = None):
         super().__init__()
+        self.codebook_size = codebook_size
+        self.dim = int(math.log2(codebook_size))
 
-        if dim <= 0:
-            raise ValueError(f"dim must be positive, got {dim}")
-
-        expected_codebook_size = 2 ** dim
-        if codebook_size is None:
-            codebook_size = expected_codebook_size
-        elif codebook_size != expected_codebook_size:
+        if dim != self.dim:
             raise ValueError(
                 f"For BinarySphericalQuantizer, codebook_size must equal 2**dim. "
-                f"Got dim={dim}, codebook_size={codebook_size}, expected={expected_codebook_size}"
+                f"Got dim={dim}, codebook_size={codebook_size}, expected_dim={self.dim}"
             )
 
-        self._dim = dim
-        self._codebook_size = codebook_size
+        # if dim <= 0:
+        #     raise ValueError(f"dim must be positive, got {dim}")
+
+        # expected_codebook_size = 2 ** dim
+        # if codebook_size is None:
+        #     codebook_size = expected_codebook_size
+        # elif codebook_size != expected_codebook_size:
+        #     raise ValueError(
+        #         f"For BinarySphericalQuantizer, codebook_size must equal 2**dim. "
+        #         f"Got dim={dim}, codebook_size={codebook_size}, expected={expected_codebook_size}"
+        #     )
+
+        # self._dim = dim
+        # self._codebook_size = codebook_size
 
         self.register_buffer(
             "codebook_value",
