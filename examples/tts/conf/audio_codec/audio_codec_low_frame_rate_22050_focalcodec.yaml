@@ -169,12 +169,16 @@ model:
     debug: true
     causal: false
 
+  # vector_quantizer:
+  #   _target_: nemo.collections.tts.modules.audio_codec_modules.BinarySphericalQuantizer
+  #   dim: ${encoder_out_dim}
+  #   # num_groups: ${num_codebooks}
+  #   # num_levels_per_group: [8, 7, 6, 6] # 2k codes
+  #   # num_levels: [9, 8, 8, 7] # 4k  codes
   vector_quantizer:
-    _target_: nemo.collections.tts.modules.audio_codec_modules.BinarySphericalQuantizer
-    dim: ${encoder_out_dim}
-    # num_groups: ${num_codebooks}
-    # num_levels_per_group: [8, 7, 6, 6] # 2k codes
-    # num_levels: [9, 8, 8, 7] # 4k  codes
+    _target_: nemo.collections.tts.modules.audio_codec_modules.GroupFiniteScalarQuantizer
+    num_groups: 4
+    num_levels_per_group: [9, 8, 8, 7]
 
   discriminator:
     _target_: nemo.collections.tts.modules.audio_codec_modules.Discriminator
@@ -232,7 +236,7 @@ trainer:
   accumulate_grad_batches: 1
   enable_checkpointing: False # Provided by exp_manager
   logger: false # Provided by exp_manager
-  log_every_n_steps: 100
+  log_every_n_steps: 400
   check_val_every_n_epoch: 1
   benchmark: false
 
