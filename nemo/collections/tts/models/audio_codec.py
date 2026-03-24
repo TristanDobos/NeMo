@@ -40,7 +40,7 @@ from torchmetrics.audio.sdr import (
 )
 from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
 
-from nemo.collections.tts.modules.audio_codec_modules import ResNetSpeakerEncoder
+from nemo.collections.tts.modules.audio_codec_modules import ResNetSpeakerEncoder, return_first_samples
 from nemo.collections.tts.modules.common import GaussianDropout
 from nemo.collections.tts.parts.utils.callbacks import LoggingCallback
 from nemo.collections.tts.parts.utils.helpers import get_batch_size, get_num_workers
@@ -383,8 +383,13 @@ class AudioCodecModel(ModelPT):
         tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
         print("tokens first values: ", tokens[0, :5, :5])
 
+        print("tokens after quantization: ", tokens.shape)
+
         # use batch first for the output
         tokens = rearrange(tokens, 'C B T -> B C T')
+
+        print("tokens after quantization rearranged: ", tokens.shape)
+
         print("rearranged first values: ", tokens[0, :5, :5])
 
         return tokens
@@ -412,8 +417,21 @@ class AudioCodecModel(ModelPT):
             raise ValueError("Cannot dequantize without quantizer")
 
         # vector quantizer is using [C, B, T], where C is the number of codebooks
+
+        print("dequantization!!!")
+        print("tokens to be dequantized: ", tokens.shape, tokens_len)
+        print("tokens first values: ", return_first_samples(tokens))
+
         tokens = rearrange(tokens, 'B C T -> C B T')
+
+        print("rearranged codes to be dequantized: ", tokens.shape, tokens_len)
+
         dequantized = self.vector_quantizer.decode(indices=tokens, input_len=tokens_len)
+
+        print("tokens first values: ", return_first_samples(tokens))
+        print("dequantized output: ", dequantized.shape)
+        print("dequantized first values: ", return_first_samples(dequantized))
+
         return dequantized
 
     @typecheck(
