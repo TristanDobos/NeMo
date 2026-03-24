@@ -1047,13 +1047,15 @@ class FocalUpScale(nn.Module):
         return output, new_left_contexts
 
 
-def print_module_shapes(output: "Tensor"):
-    if output.dim() == 3:
-        print(f"FocalDecoder output sample: {output[0, :5, :5]}")
+def return_first_samples(output: "Tensor"):
+    if output.dim() == 4:
+        return output[0, 0, 0, :5]
+    elif output.dim() == 3:
+        return output[0, 0, :5]
     elif output.dim() == 2:
-        print(f"FocalDecoder output sample: {output[0, :5]}")
+        return output[0, :5]
     else:
-        print(f"FocalDecoder output sample: {output}")
+        return output
 
 class FocalEncoder(nn.Module):
     """Focal encoder that applies a series of focal downscale layers.
@@ -1223,7 +1225,7 @@ class FocalEncoder(nn.Module):
         if self.debug:
             print("with output = output.transpose(1, 2) AFTER TRANSPOSE:")
             print(f"FocalEncoder output (transposed) shape: {output.shape}")
-            print(f"FocalEncoder output (transposed) sample: {print_module_shapes(output)}")
+            print(f"FocalEncoder output (transposed) sample: {return_first_samples(output)}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         return output, encoded_len
@@ -1387,7 +1389,7 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("BEFORE IN_PROJ:")
             print(f"FocalDecoder input shape: {inputs.shape}")
-            print(f"FocalDecoder input sample: {print_module_shapes(inputs)}")
+            print(f"FocalDecoder input sample: {return_first_samples(inputs)}")
             print(f"Average of absolute values in input: {inputs.abs().mean().item()}")
 
 
@@ -1400,7 +1402,7 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("AFTER TRANSPOSE (if applied):")
             print(f"FocalDecoder input for in_proj shape: {x.shape}")
-            print(f"FocalDecoder input for in_proj sample: {print_module_shapes(x)}")
+            print(f"FocalDecoder input for in_proj sample: {return_first_samples(x)}")
             print(f"Average of absolute values in input for in_proj: {x.abs().mean().item()}")
 
         output = self.in_proj(x)
@@ -1415,13 +1417,13 @@ class FocalDecoder(nn.Module):
         if self.debug:
             print("AFTER LAYERS:")
             print(f"FocalDecoder output shape: {output.shape}")
-            print(f"FocalDecoder output sample: {print_module_shapes(output)}")
+            print(f"FocalDecoder output sample: {return_first_samples(output)}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
         if self.debug:
             print("AFTER IN_PROJ:")
             print(f"FocalDecoder output shape: {output.shape}")
-            print(f"FocalDecoder output sample: {print_module_shapes(output)}")
+            print(f"FocalDecoder output sample: {return_first_samples(output)}")
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
             print(f"before squeeze, output shape: {output.shape}")
 
@@ -1430,9 +1432,12 @@ class FocalDecoder(nn.Module):
 
         if self.debug:
             print("AFTER SQUEEZE:")
-            print(f"FocalDecoder output shape: {output.shape}")
-            print(f"FocalDecoder output sample: {print_module_shapes(output)}")
+            print(f"FocalDecoder output shape: {output.shape}") # FocalDecoder output shape: torch.Size([1, 24576])
+            print(f"FocalDecoder output sample: {return_first_samples(output)}") 
+            # FocalDecoder output sample: tensor([-72.8682, -72.9867, -73.1374, -73.5926, -73.8021], device='cuda:0', grad_fn=<SliceBackward0>)
+            # FocalDecoder output sample: None
             print(f"Average of absolute values in output: {output.abs().mean().item()}")
+            # Average of absolute values in output: 76.22503662109375
 
         return output, input_len
 
