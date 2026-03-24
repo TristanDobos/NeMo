@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-With-MetricsNew.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/20260319-focalcodec-With-MetricsNew.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-1.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-1.err            # standard error log file
 
 
 ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
