@@ -1168,11 +1168,22 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         self.codebook_size = codebook_size
         self.dim = int(math.log2(codebook_size))
 
-        if dim != self.dim:
+        if codebook_size is None:
+                codebook_size = 2 ** dim
+
+        if codebook_size <= 0 or (codebook_size & (codebook_size - 1)) != 0:
+            raise ValueError(f"codebook_size must be a positive power of 2, got {codebook_size}")
+
+        expected_dim = int(math.log2(codebook_size))
+
+        if dim != expected_dim:
             raise ValueError(
                 f"For BinarySphericalQuantizer, codebook_size must equal 2**dim. "
-                f"Got dim={dim}, codebook_size={codebook_size}, expected_dim={self.dim}"
-            )
+                f"Got dim={dim}, codebook_size={codebook_size}, expected_dim={expected_dim}"
+        )
+
+        self._codebook_size = codebook_size
+        self._dim = dim
 
         # if dim <= 0:
         #     raise ValueError(f"dim must be positive, got {dim}")
@@ -1185,11 +1196,6 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         #         f"For BinarySphericalQuantizer, codebook_size must equal 2**dim. "
         #         f"Got dim={dim}, codebook_size={codebook_size}, expected={expected_codebook_size}"
         #     )
-
-        self._dim = dim
-        self._codebook_size = codebook_size
-        self.dim = dim
-        self.codebook_size = codebook_size
 
         self.register_buffer(
             "codebook_value",
@@ -1226,7 +1232,7 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
     @property
     def codebook_dim(self):
         # Keep for compatibility with other quantizers
-        return self.dim
+        return self._dim
 
     @property
     def codes(self):
