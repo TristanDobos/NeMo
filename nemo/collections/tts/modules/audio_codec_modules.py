@@ -1165,8 +1165,8 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
     def __init__(self, dim: int, codebook_size: int = None):
         super().__init__()
-        self.codebook_size = codebook_size
-        self.dim = int(math.log2(codebook_size))
+        self._codebook_size = codebook_size
+        self._dim = int(math.log2(codebook_size))
 
         if codebook_size is None:
                 codebook_size = 2 ** dim
@@ -1181,9 +1181,6 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
                 f"For BinarySphericalQuantizer, codebook_size must equal 2**dim. "
                 f"Got dim={dim}, codebook_size={codebook_size}, expected_dim={expected_dim}"
         )
-
-        self._codebook_size = codebook_size
-        self._dim = dim
 
         # if dim <= 0:
         #     raise ValueError(f"dim must be positive, got {dim}")
