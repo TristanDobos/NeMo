@@ -171,13 +171,13 @@ model:
     # causal: false
 
   compressor:
-    _target_: nemo.collections.tts.modules.focalcodec.focalnet.FocalEncoder
+    _target_: nemo.collections.tts.modules.focalcodec.FocalEncoder
 
   decompressor:
-    _target_: nemo.collections.tts.modules.focalcodec.focalnet.FocalDecoder
+    _target_: nemo.collections.tts.modules.focalcodec.FocalDecoder
 
   vector_quantizer:
-    _target_: nemo.collections.tts.modules.focalcodec.bsq.BinarySphericalQuantizer
+    _target_: nemo.collections.tts.modules.focalcodec.bsq.BinarySphericalQuantizer1
     # dim: ${encoder_out_dim}
     codebook_size: 4096
 
