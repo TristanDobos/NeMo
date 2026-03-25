@@ -105,8 +105,7 @@ class ConvBlock(nn.Module):
 
     def forward(
         self,
-        audio: "Tensor", 
-        audio_len: "Optional[Tensor]" = None,
+        input: "Tensor",
         left_context: "Optional[Tensor]" = None,
     ) -> "Tuple[Tensor, Optional[Tensor]]":
         """Forward pass.
@@ -125,7 +124,6 @@ class ConvBlock(nn.Module):
             - updated left context for next chunk.
 
         """
-        input = audio
         input = input.permute(0, 2, 1)
         if self.causal:
             if left_context is None:
@@ -1114,7 +1112,9 @@ class WavLM(nn.Module):
 
     def forward(
         self,
-        input: "Tensor",
+        audio: "Tensor", 
+        audio_len: "Optional[Tensor]" = None,
+        left_context: "Optional[Tensor]" = None,
         curr_pos: "Optional[Tensor]" = None,
         left_contexts: "Optional[List[Optional[Tensor]]]" = None,
         kv_caches: "Optional[List[Optional[Tensor]]]" = None,
@@ -1147,6 +1147,7 @@ class WavLM(nn.Module):
             - updated key-value caches for each encoder layer.
 
         """
+        input = audio
         # [B, T, 1]
         input = input[..., None]
         encoder_left_context = None if left_contexts is None else left_contexts[-1]
