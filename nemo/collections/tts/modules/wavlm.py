@@ -32,6 +32,17 @@ from torch import Tensor, nn
 __all__ = ["WavLM"]
 
 
+def return_first_samples(output):
+    if output.dim() == 4:
+        return output[0, 0, 0, :5]
+    elif output.dim() == 3:
+        return output[0, 0, :5]
+    elif output.dim() == 2:
+        return output[0, :5]
+    else:
+        return output
+
+
 try:
     from torch.nn.attention.flex_attention import flex_attention
 
@@ -1155,7 +1166,7 @@ class WavLM(nn.Module):
         output = self.norm(output)
         output = self.feature_proj(output)
         output = self.dropout(output)
-        output, curr_pos, left_context, kv_caches = self.encoder(
+        x, curr_pos, left_context, kv_caches = self.encoder(
             output,
             curr_pos,
             encoder_left_context,
@@ -1163,7 +1174,18 @@ class WavLM(nn.Module):
             length,
         )
         left_contexts.append(left_context)
-        return output, curr_pos, left_contexts, kv_caches
+
+        encoded_len = curr_pos if curr_pos is not None else torch.full(
+        (x.size(0),), x.size(1), device=x.device, dtype=torch.long)
+
+        print(f"Input audio shape: {audio.shape}")
+        print(f"Output shape: {x.shape}")
+        print(f"Encoded length: {encoded_len.shape}")
+        print(f"example audio: {return_first_samples(audio)}")
+        print(f"example output: {return_first_samples(x)}")
+        print(f"example encoded length: {return_first_samples(encoded_len)}")
+
+        return x, encoded_len
 
 
 def test_model() -> "None":
