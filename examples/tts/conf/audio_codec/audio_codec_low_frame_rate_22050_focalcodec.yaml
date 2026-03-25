@@ -132,11 +132,11 @@ model:
     log_tensorboard: false
     log_wandb: true
 
-    # generators:
-    #   - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
-    #     log_audio: true
-    #     log_encoding: false
-    #     log_dequantized: false
+    generators:
+      - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
+        log_audio: true
+        log_encoding: false
+        log_dequantized: false
 
     dataset:
       _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
