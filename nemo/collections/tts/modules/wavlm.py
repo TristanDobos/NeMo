@@ -105,7 +105,8 @@ class ConvBlock(nn.Module):
 
     def forward(
         self,
-        input: "Tensor",
+        audio: "Tensor", 
+        audio_len: "Optional[Tensor]" = None,
         left_context: "Optional[Tensor]" = None,
     ) -> "Tuple[Tensor, Optional[Tensor]]":
         """Forward pass.
@@ -124,6 +125,7 @@ class ConvBlock(nn.Module):
             - updated left context for next chunk.
 
         """
+        input = audio
         input = input.permute(0, 2, 1)
         if self.causal:
             if left_context is None:
@@ -1360,3 +1362,4 @@ if __name__ == "__main__":
     test_batch_invariance()
     test_causality()
     test_onnx()
+
