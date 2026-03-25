@@ -85,7 +85,7 @@ class ConvNeXtBlock(nn.Module):
 
     def forward(
         self,
-        inputs: "Tensor",
+        input: "Tensor",
         left_context: "Optional[Tensor]" = None,
     ) -> "Tuple[Tensor, Optional[Tensor]]":
         """Forward pass.
@@ -104,7 +104,7 @@ class ConvNeXtBlock(nn.Module):
             - updated left context for next chunk.
 
         """
-        input = inputs.permute(0, 2, 1)
+        input = input.permute(0, 2, 1)
         orig_input = input
         if self.causal:
             if left_context is None:
@@ -460,14 +460,14 @@ class Vocos(nn.Module):
 
     def forward(
         self,
-        input: "Tensor",
+        inputs: "Tensor",
         left_contexts: "Optional[List[Optional[Tensor]]]" = None,
     ) -> "Tuple[Tensor, List[Optional[Tensor]]]":
         """Forward pass.
 
         Parameters
         ----------
-        input:
+        inputs:
             Input tensor of shape (batch_size, seq_length, input_dim).
         left_contexts:
             Left contexts for each backbone layer.
@@ -480,7 +480,7 @@ class Vocos(nn.Module):
             - updated left contexts for each backbone layer.
 
         """
-        output, left_contexts = self.backbone(input, left_contexts)
+        output, left_contexts = self.backbone(inputs, left_contexts)
         output = self.head(output)
         return output, left_contexts
 
