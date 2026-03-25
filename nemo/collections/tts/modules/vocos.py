@@ -461,6 +461,7 @@ class Vocos(nn.Module):
     def forward(
         self,
         inputs: "Tensor",
+        inputs_len: "Optional[Tensor]" = None,
         left_contexts: "Optional[List[Optional[Tensor]]]" = None,
     ) -> "Tuple[Tensor, List[Optional[Tensor]]]":
         """Forward pass.
