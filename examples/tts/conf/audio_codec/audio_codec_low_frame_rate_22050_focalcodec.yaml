@@ -132,11 +132,11 @@ model:
     log_tensorboard: false
     log_wandb: true
 
-    generators:
-      - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
-        log_audio: true
-        log_encoding: false
-        log_dequantized: false
+    # generators:
+    #   - _target_: nemo.collections.tts.parts.utils.callbacks.AudioCodecArtifactGenerator
+    #     log_audio: true
+    #     log_encoding: false
+    #     log_dequantized: false
 
     dataset:
       _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
@@ -164,7 +164,7 @@ model:
     # causal: false
 
   audio_decoder:
-    _target_: nemo.collections.tts.modules.wavenext.WaveNeXt
+    _target_: nemo.collections.tts.modules.vocos.Vocos
     # input_dim: ${encoder_out_dim}
     # output_dim: ${encoder_in_dim}
     # debug: true
@@ -192,15 +192,15 @@ model:
   discriminator:
     _target_: nemo.collections.tts.modules.audio_codec_modules.Discriminator
     discriminators:
-      - _target_: nemo.collections.tts.modules.encodec_modules.MultiResolutionDiscriminatorSTFT
-        resolutions:
-          [
-            [128, 32, 128],
-            [256, 64, 256],
-            [512, 128, 512],
-            [1024, 256, 1024],
-            [2048, 512, 2048],
-          ]
+      # - _target_: nemo.collections.tts.modules.encodec_modules.MultiResolutionDiscriminatorSTFT
+      #   resolutions:
+      #     [
+      #       [128, 32, 128],
+      #       [256, 64, 256],
+      #       [512, 128, 512],
+      #       [1024, 256, 1024],
+      #       [2048, 512, 2048],
+      #     ] HERE
       - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiPeriodDiscriminator
 
   generator_loss:
