@@ -42,9 +42,9 @@ from nemo.core.neural_types.elements import (
 )
 from nemo.core.neural_types.neural_type import NeuralType
 
-__all__ = ["FocalDecoder", "FocalEncoder", "BinarySphericalQuantizer"]
+__all__ = ["FocalDecoder", "FocalEncoder", "BinarySphericalQuantizer1"]
 
-class BinarySphericalQuantizer(nn.Module):
+class BinarySphericalQuantizer1(nn.Module):
     """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
 
     Parameters
