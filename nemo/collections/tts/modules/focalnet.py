@@ -219,6 +219,24 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
         return dequantized
 
+    def forward(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> "Tuple[Tensor, Tensor]":
+        """Forward pass.
+
+        Parameters
+        ----------
+        inputs:
+            Input tensor of shape (..., dim).
+
+        Returns
+        -------
+            - Output tokens of shape (...);
+            - output codes (i.e. quantized latents) of shape (..., dim).
+
+        """
+        toks = self.lats_to_toks(inputs)
+        codes = self.toks_to_codes(toks)
+        return toks, codes
+
     def _bits_to_codes(self, bits: "Tensor") -> "Tensor":
         return bits * 2 - 1
 
