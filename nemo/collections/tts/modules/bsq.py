@@ -20,7 +20,7 @@
 # https://github.com/lucidrains/vector-quantize-pytorch/blob/3e4ce165774d3f5944f12ffb5ccd02848bb38df6/vector_quantize_pytorch/lookup_free_quantization.py
 
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 
 from nemo.collections.common.parts.utils import mask_sequence_tensor
 from nemo.collections.tts.modules.audio_codec_modules import return_first_samples
@@ -35,185 +35,142 @@ from nemo.core.neural_types.elements import (
 )
 from nemo.core.neural_types.neural_type import NeuralType
 from nemo.utils import logging
-
+from einops import rearrange
 
 __all__ = ["BinarySphericalQuantizer"]
 
 
 class BinarySphericalQuantizer(nn.Module):
-    """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
-
-    Parameters
-    ----------
-    codebook_size:
-        Number of binary codes in the codebook.
-
-    """
-
-    def __init__(self, codebook_size: "int" = 4096) -> "None":
+    def __init__(self, codebook_size: int = 4096) -> None:
         super().__init__()
         self.codebook_size = codebook_size
         self.dim = int(math.log2(codebook_size))
 
-        # Buffers
+        if 2 ** self.dim != codebook_size:
+            raise ValueError(
+                f"codebook_size must be a power of 2, got {codebook_size}"
+            )
+
         self.register_buffer(
             "codebook_value",
             torch.tensor(1 / math.sqrt(self.dim)),
             persistent=False,
         )
         self.register_buffer(
-            "mask", 2 ** torch.arange(self.dim - 1, -1, -1), persistent=False
+            "mask",
+            2 ** torch.arange(self.dim - 1, -1, -1),
+            persistent=False,
         )
+
         all_codes = torch.arange(codebook_size)
         bits = (all_codes[..., None].int() & self.mask) != 0
-        codebook = self._bits_to_codes(bits) * self.codebook_value
+        codebook = self._bits_to_codes(bits.to(torch.float32)) * self.codebook_value
         self.register_buffer("codebook", codebook, persistent=False)
 
-    def forward(self, lats: "Tensor") -> "Tuple[Tensor, Tensor]":
-        """Forward pass.
+    @property
+    def input_types(self):
+        return {
+            "inputs": NeuralType(("B", "D", "T"), EncodedRepresentation()),
+            "input_len": NeuralType(tuple("B"), LengthsType(), optional=True),
+        }
 
-        Parameters
-        ----------
-        lats:
-            Input latents of shape (..., dim).
+    @property
+    def output_types(self):
+        return {
+            "dequantized": NeuralType(("B", "D", "T"), EncodedRepresentation()),
+            "indices": NeuralType(("D", "B", "T"), Index()),
+        }
 
-        Returns
-        -------
-            - Output tokens of shape (...);
-            - output codes (i.e. quantized latents) of shape (..., dim).
-
+    @typecheck()
+    def forward(
+        self, inputs: Tensor, input_len: Optional[Tensor] = None
+    ) -> Tuple[Tensor, Tensor]:
         """
-        toks = self.lats_to_toks(lats)
-        codes = self.toks_to_codes(toks)
-        return toks, codes
-
-    @torch.jit.export
-    def lats_to_codes(self, lats: "Tensor") -> "Tensor":
-        """Transform latents into codes (i.e. quantized latents).
-
-        Parameters
-        ----------
-        lats:
-            Input latents of shape (..., dim).
-
-        Returns
-        -------
-            Output codes of shape (..., dim).
-
+        inputs: [B, D, T]
+        returns:
+          dequantized: [B, D, T]
+          indices:     [1, B, T]
         """
-        return torch.where(lats > 0, self.codebook_value, -self.codebook_value)
+        # [B, D, T] -> [B, T, D]
+        lats_bt_d = rearrange(inputs, "B D T -> B T D")
 
-    @torch.jit.export
-    def lats_to_toks(self, lats: "Tensor") -> "Tensor":
-        """Transform latents into tokens.
+        # [B, T, D] -> [B, T]
+        toks_bt = self.lats_to_toks(lats_bt_d)
 
-        Parameters
-        ----------
-        lats:
-            Input latents of shape (..., dim).
+        # [B, T] -> [B, T, D]
+        dequantized_bt_d = self.toks_to_codes(toks_bt)
 
-        Returns
-        -------
-            Output tokens of shape (...).
+        # [B, T, D] -> [B, D, T]
+        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
 
-        """
-        return self.codes_to_toks(lats)
+        # [B, T] -> [1, B, T]
+        indices = toks_bt.unsqueeze(0)
 
-    @torch.jit.export
-    def codes_to_toks(self, codes: "Tensor") -> "Tensor":
-        """Transform codes (i.e. quantized latents) into tokens.
+        if input_len is not None:
+            dequantized = mask_sequence_tensor(dequantized, input_len)
 
-        Parameters
-        ----------
-        codes:
-            Input codes of shape (..., dim).
-
-        Returns
-        -------
-            Output tokens of shape (...).
-
-        """
-        return ((codes > 0) * self.mask).sum(dim=-1)
-
-    @torch.jit.export
-    def toks_to_codes(self, toks: "Tensor") -> "Tensor":
-        """Transform tokens into codes (i.e. quantized latents).
-
-        Parameters
-        ----------
-        toks:
-            Input tokens of shape (...).
-
-        Returns
-        -------
-            Output codes of shape (..., dim).
-
-        """
-        # ONNX compilable
-        bits = ((toks[..., None] // self.mask) % 2).to(self.codebook.dtype)
-        return self._bits_to_codes(bits) * self.codebook_value
-
+        return dequantized, indices
 
     @typecheck(
         input_types={
-            "inputs": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
-            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+            "inputs": NeuralType(("B", "D", "T"), EncodedRepresentation()),
+            "input_len": NeuralType(tuple("B"), LengthsType(), optional=True),
         },
-        output_types={"indices": NeuralType(('D', 'B', 'T'), Index())},
+        output_types={"indices": NeuralType(("D", "B", "T"), Index())},
     )
-    def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
+    def encode(
+        self, inputs: Tensor, input_len: Optional[Tensor] = None
+    ) -> Tensor:
         dequantized, indices = self(inputs=inputs, input_len=input_len)
-        print(f"encoding 13131333: dequantized shape: {dequantized.shape}")
-        print(f"encoding some values from dequantized: {return_first_samples(dequantized)}")
-        print(f"encoding 13131333: encode inputs shape: {inputs.shape}")
-        print(f"encoding some values from inputs: {return_first_samples(inputs)}")
-        print(f"encoding 13131333: indices shape: {indices.shape}")
-        print(f"encoding some values from indices: {return_first_samples(indices)}")
-
         return indices
 
     @typecheck(
         input_types={
-            "indices": NeuralType(('D', 'B', 'T'), Index()),
-            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+            "indices": NeuralType(("D", "B", "T"), Index()),
+            "input_len": NeuralType(tuple("B"), LengthsType(), optional=True),
         },
         output_types={
-            "dequantized": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+            "dequantized": NeuralType(("B", "D", "T"), EncodedRepresentation()),
         },
     )
-    def decode(self, indices: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Decode token indices [1, B, T] to quantized codes [B, D, T]."""
+    def decode(
+        self, indices: Tensor, input_len: Optional[Tensor] = None
+    ) -> Tensor:
         if indices.size(0) != 1:
             raise ValueError(
-                    f"Expected a single codebook, got {indices.size(0)} codebooks for indices with shape {indices.shape}."
-                )
+                f"Expected a single codebook, got {indices.size(0)} for shape {indices.shape}."
+            )
 
-        # [1, B, T] -> [B, T]
-        indices_bt = indices.squeeze(0)
-
-        # [B, T] -> [B, T, D]
-        dequantized_bt_d = self.toks_to_codes(indices_bt)
-
-        # [B, T, D] -> [B, D, T]
+        indices_bt = indices.squeeze(0)                     # [B, T]
+        dequantized_bt_d = self.toks_to_codes(indices_bt)  # [B, T, D]
         dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
 
         if input_len is not None:
             dequantized = mask_sequence_tensor(dequantized, input_len)
 
-        print(f"decoding 13131333: dequantized shape: {dequantized.shape}")
-        print(f"decoding 13131333: indices shape: {indices.shape}")
-        print(f"decoding 13131333: codebook shape: {self.codebook.shape}")
-        print(f"decoding indices: {return_first_samples(indices)}")
-        print(f"decoding dequantized: {return_first_samples(dequantized)}")
-        
-
         return dequantized
 
-    def _bits_to_codes(self, bits: "Tensor") -> "Tensor":
+    @torch.jit.export
+    def lats_to_codes(self, lats: Tensor) -> Tensor:
+        return torch.where(lats > 0, self.codebook_value, -self.codebook_value)
+
+    @torch.jit.export
+    def lats_to_toks(self, lats: Tensor) -> Tensor:
+        return self.codes_to_toks(lats)
+
+    @torch.jit.export
+    def codes_to_toks(self, codes: Tensor) -> Tensor:
+        return ((codes > 0) * self.mask).sum(dim=-1)
+
+    @torch.jit.export
+    def toks_to_codes(self, toks: Tensor) -> Tensor:
+        bits = ((toks[..., None] // self.mask) % 2).to(self.codebook.dtype)
+        return self._bits_to_codes(bits) * self.codebook_value
+
+    def _bits_to_codes(self, bits: Tensor) -> Tensor:
         return bits * 2 - 1
 
-    def __repr__(self) -> "str":
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(codebook_size={self.codebook_size})"
 
 
