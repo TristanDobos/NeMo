@@ -575,6 +575,7 @@ class AudioCodecModel(ModelPT):
                 print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
             else:
+                print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
                 commit_loss = 0.0
         else:
