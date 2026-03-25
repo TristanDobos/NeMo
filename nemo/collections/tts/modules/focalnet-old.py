@@ -26,6 +26,20 @@ import torch
 from torch import Size, Tensor, nn
 
 
+try:
+    from .focalcodec.bsq import BinarySphericalQuantizer
+    from .focalcodec.version import VERSION
+    from .focalcodec.vocos import Vocos
+    from .focalcodec.wavenext import WaveNeXt
+    from .focalcodec.wavlm import WavLM
+except ImportError:
+    from focalcodec.bsq import BinarySphericalQuantizer
+    from focalcodec.version import VERSION
+    from focalcodec.vocos import Vocos
+    from focalcodec.wavenext import WaveNeXt
+    from focalcodec.wavlm import WavLM
+
+
 __all__ = ["FocalDecoder", "FocalEncoder"]
 
 
@@ -1047,6 +1061,16 @@ class FocalUpScale(nn.Module):
         return output, new_left_contexts
 
 
+def return_first_samples(output: "Tensor"):
+    if output.dim() == 4:
+        return output[0, 0, 0, :5]
+    elif output.dim() == 3:
+        return output[0, 0, :5]
+    elif output.dim() == 2:
+        return output[0, :5]
+    else:
+        return output
+
 class FocalEncoder(nn.Module):
     """Focal encoder that applies a series of focal downscale layers.
 
@@ -1104,6 +1128,7 @@ class FocalEncoder(nn.Module):
         normalize_modulator: "bool" = False,
         causal: "bool" = False,
         window_size: "int" = 512,
+        debug: "bool" = False,
     ) -> "None":
         super().__init__()
         self.input_dim = input_dim
@@ -1123,6 +1148,10 @@ class FocalEncoder(nn.Module):
         self.window_size = window_size
         self.downsample_factor = torch.Size(downscale_factors).numel()
         self.chunk_size = self.downsample_factor
+
+        self.debug = debug
+
+        self.stem = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=7, padding=3)
 
         # Modules
         self.layers = nn.ModuleList()
@@ -1156,22 +1185,13 @@ class FocalEncoder(nn.Module):
     def modulators(self) -> "List[Tensor]":
         return [layer.modulator for layer in self.layers]
 
-    def forward(
-        self,
-        input: "Tensor",
-        left_contexts: "Optional[List[Optional[List[Optional[Tensor]]]]]" = None,
-    ) -> "Tuple[Tensor, List[List[Optional[Tensor]]]]":
+    def forward(self, audio: Tensor, audio_len: Tensor):
         """Forward pass.
 
         Parameters
         ----------
-        input:
-            Input tensor of shape (batch_size, seq_length, input_dim).
-        left_contexts:
-            Left contexts for each layer.
-            If provided, each tensor in the inner list should be of shape (batch_size, kernel_size_i - 1, output_dim),
-            except for the first, which should be of shape (batch_size, kernel_size_0 - 1, input_dim),
-            and the last, which should be of shape (batch_size, window_size - 1, output_dim).
+        audio
+        audio_len
 
         Returns
         -------
@@ -1179,18 +1199,50 @@ class FocalEncoder(nn.Module):
             - updated left contexts for each layer.
 
         """
-        new_left_contexts: List[List[Optional[Tensor]]] = []
-        output = input
-        for i, layer in enumerate(self.layers):
-            output, new_left_contexts_i = layer(
+        x = audio.unsqueeze(1) 
+
+        if self.debug:  
+            print("!!!!: the input shape for stem is ", x.shape)
+
+        x = self.stem(x) 
+
+        if self.debug:  
+            print("!!!!: the input shape after stem is ", x.shape)
+
+        output = x.transpose(1, 2)
+
+        if self.debug:  
+            print("!!!!: the input shape after transpose is ", x.shape)
+
+        for _, layer in enumerate(self.layers):
+            output, _ = layer(
                 output,
-                None if left_contexts is None else left_contexts[i],
+                None,
             )
-            new_left_contexts.append(new_left_contexts_i)
+
         output = self.dropout(output)
         output = self.out_proj(output)
-        return output, new_left_contexts
 
+        if self.debug:
+            print("BEFORE TRANSPOSE:")
+            print(f"Input audio shape: {audio.shape}")
+            print(f"Input audio_len shape: {audio_len.shape}")
+            print(f"FocalEncoder output shape: {output.shape}")
+            print(f"FocalEncoder output sample: {return_first_samples(output)}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
+
+        encoded_len = audio_len
+
+        output = output.transpose(1, 2)
+        # RuntimeError: Input dimension 167936 does not match expected dimension 10, input shape: torch.Size([1, 167936, 10])
+
+        if self.debug:
+            print("with output = output.transpose(1, 2) AFTER TRANSPOSE:")
+            print(f"FocalEncoder output (transposed) shape: {output.shape}")
+            print(f"FocalEncoder output (transposed) sample: {return_first_samples(output)}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
+
+        return output, encoded_len
 
 class FocalDecoder(nn.Module):
     """Focal decoder that applies a series of focal upscale layers.
@@ -1257,6 +1309,7 @@ class FocalDecoder(nn.Module):
         window_size: "int" = 512,
         last_window_size: "int" = 512,
         lookahead_size: "int" = 3,
+        debug: "bool" = False,
     ) -> "None":
         super().__init__()
         self.input_dim = input_dim
@@ -1278,6 +1331,10 @@ class FocalDecoder(nn.Module):
         self.lookahead_size = lookahead_size
         self.upsample_factor = torch.Size(upscale_factors).numel()
         self.chunk_size = 1 + lookahead_size
+
+        self.debug = debug
+
+        self.final_proj = nn.Linear(16, 1)
 
         # Modules
         hidden_dims = tuple(hidden_dims) + (output_dim,)
@@ -1327,22 +1384,14 @@ class FocalDecoder(nn.Module):
     def modulators(self) -> "List[Tensor]":
         return [layer.modulator for layer in self.layers]
 
-    def forward(
-        self,
-        input: "Tensor",
-        left_contexts: "Optional[List[Optional[List[Optional[Tensor]]]]]" = None,
-    ) -> "Tuple[Tensor, List[List[Optional[Tensor]]]]":
+    def forward(self, inputs: Tensor, input_len: Tensor):
         """Forward pass.
 
         Parameters
         ----------
-        input:
-            Input tensor of shape (batch_size, seq_length, input_dim).
-        left_contexts:
-            Left contexts for each layer.
-            If provided, each tensor in the inner list should be of shape (batch_size, kernel_size_i - 1, input_dim),
-            except for the second last, which should be of shape (batch_size, window_size - 1, input_dim),
-            and the last, which should be of shape (batch_size, kernel_size_k - 1, output_dim).
+        inputs
+        input_len
+            
 
         Returns
         -------
@@ -1350,20 +1399,61 @@ class FocalDecoder(nn.Module):
             - updated left contexts for each layer.
 
         """
-        new_left_contexts: List[List[Optional[Tensor]]] = []
-        output = self.in_proj(input)
+
+        if self.debug:
+            print("BEFORE IN_PROJ:")
+            print(f"FocalDecoder input shape: {inputs.shape}")
+            print(f"FocalDecoder input sample: {return_first_samples(inputs)}")
+            print(f"Average of absolute values in input: {inputs.abs().mean().item()}")
+
+
+        if inputs.shape[-1] != self.input_dim:
+            x = inputs.transpose(1, 2)
+        else:
+            x = inputs
+
+
+        if self.debug:
+            print("AFTER TRANSPOSE (if applied):")
+            print(f"FocalDecoder input for in_proj shape: {x.shape}")
+            print(f"FocalDecoder input for in_proj sample: {return_first_samples(x)}")
+            print(f"Average of absolute values in input for in_proj: {x.abs().mean().item()}")
+
+        output = self.in_proj(x)
         output = self.dropout(output)
-        for i, layer in enumerate(self.layers):
-            output, new_left_contexts_i = layer(
+
+        for _, layer in enumerate(self.layers):
+            output, _ = layer(
                 output,
-                None if left_contexts is None else left_contexts[i],
+                None
             )
-            new_left_contexts.append(new_left_contexts_i)
 
-        if self.causal and self.lookahead_size > 0:
-            output = self.refiner(output)
+        if self.debug:
+            print("AFTER LAYERS:")
+            print(f"FocalDecoder output shape: {output.shape}")
+            print(f"FocalDecoder output sample: {return_first_samples(output)}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
 
-        return output, new_left_contexts
+        if self.debug:
+            print("AFTER IN_PROJ:")
+            print(f"FocalDecoder output shape: {output.shape}")
+            print(f"FocalDecoder output sample: {return_first_samples(output)}")
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
+            print(f"before squeeze, output shape: {output.shape}")
+
+        output = self.final_proj(output) 
+        output = output.squeeze(-1)
+
+        if self.debug:
+            print("AFTER SQUEEZE:")
+            print(f"FocalDecoder output shape: {output.shape}") # FocalDecoder output shape: torch.Size([1, 24576])
+            print(f"FocalDecoder output sample: {return_first_samples(output)}") 
+            # FocalDecoder output sample: tensor([-72.8682, -72.9867, -73.1374, -73.5926, -73.8021], device='cuda:0', grad_fn=<SliceBackward0>)
+            # FocalDecoder output sample: None
+            print(f"Average of absolute values in output: {output.abs().mean().item()}")
+            # Average of absolute values in output: 76.22503662109375
+
+        return output, input_len
 
 
 def test_model() -> "None":

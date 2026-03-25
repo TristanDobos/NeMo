@@ -157,27 +157,27 @@ model:
       num_workers: ${workers_num}
 
   audio_encoder:
-    _target_: nemo.collections.tts.modules.focalcodec.wavlm.WavLM
+    _target_: nemo.collections.tts.modules.wavlm.WavLM
     # input_dim: ${encoder_in_dim}
     # output_dim: ${encoder_out_dim}
     # debug: true
     # causal: false
 
   audio_decoder:
-    _target_: nemo.collections.tts.modules.focalcodec.wavenext.WaveNeXt
+    _target_: nemo.collections.tts.modules.wavenext.WaveNeXt
     # input_dim: ${encoder_out_dim}
     # output_dim: ${encoder_in_dim}
     # debug: true
     # causal: false
 
   compressor:
-    _target_: nemo.collections.tts.modules.focalcodec.FocalEncoder
+    _target_: nemo.collections.tts.modules.FocalEncoder
 
   decompressor:
-    _target_: nemo.collections.tts.modules.focalcodec.FocalDecoder
+    _target_: nemo.collections.tts.modules.FocalDecoder
 
   vector_quantizer:
-    _target_: nemo.collections.tts.modules.focalcodec.bsq.BinarySphericalQuantizer1
+    _target_: nemo.collections.tts.modules.bsq.BinarySphericalQuantizer
     # dim: ${encoder_out_dim}
     codebook_size: 4096
 
