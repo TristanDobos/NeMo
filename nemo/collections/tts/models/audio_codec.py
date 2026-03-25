@@ -386,7 +386,9 @@ class AudioCodecModel(ModelPT):
         print("encoded first values: ", return_first_samples(encoded))
         compressed_encoded = self.compressor(encoded)
         # print("compressed_encoded: ", compressed_encoded.shape, encoded_len)
-        print("compressed_encoded first values: ", return_first_samples(compressed_encoded))
+        # print("compressed_encoded first values: ", return_first_samples(compressed_encoded))
+        print("compressed_encodedq111: ", compressed_encoded)
+        print("encoded_len ", encoded_len)
 
 
         tokens = self.vector_quantizer.encode(inputs=compressed_encoded, input_len=encoded_len)
