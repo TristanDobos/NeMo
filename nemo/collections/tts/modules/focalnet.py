@@ -27,6 +27,7 @@ from nemo.core.neural_types.elements import EncodedRepresentation
 import torch
 from torch import Size, Tensor, nn
 from typing import Tuple
+from einops import rearrange
 
 from nemo.collections.common.parts.utils import mask_sequence_tensor
 from nemo.collections.tts.modules.audio_codec_modules import return_first_samples
