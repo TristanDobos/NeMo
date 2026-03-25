@@ -30,7 +30,7 @@ from typing import Tuple
 from einops import rearrange
 
 from nemo.collections.common.parts.utils import mask_sequence_tensor
-from nemo.collections.tts.modules.audio_codec_modules import return_first_samples
+from nemo.collections.tts.modules.audio_codec_modules import VectorQuantizerBase, return_first_samples
 import torch
 from torch import Tensor, nn
 from nemo.collections.common.parts.utils import   mask_sequence_tensor
@@ -44,7 +44,7 @@ from nemo.core.neural_types.neural_type import NeuralType
 
 __all__ = ["FocalDecoder", "FocalEncoder", "BinarySphericalQuantizer"]
 
-class BinarySphericalQuantizer(nn.Module):
+class BinarySphericalQuantizer(VectorQuantizerBase):
     """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
 
     Parameters
