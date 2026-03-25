@@ -85,7 +85,7 @@ class ConvNeXtBlock(nn.Module):
 
     def forward(
         self,
-        input: "Tensor",
+        inputs: "Tensor",
         left_context: "Optional[Tensor]" = None,
     ) -> "Tuple[Tensor, Optional[Tensor]]":
         """Forward pass.
@@ -104,7 +104,7 @@ class ConvNeXtBlock(nn.Module):
             - updated left context for next chunk.
 
         """
-        input = input.permute(0, 2, 1)
+        input = inputs.permute(0, 2, 1)
         orig_input = input
         if self.causal:
             if left_context is None:
