@@ -22,8 +22,19 @@
 import math
 from typing import Tuple
 
+from nemo.collections.common.parts.utils import mask_sequence_tensor
+from nemo.collections.tts.modules.audio_codec_modules import return_first_samples
 import torch
 from torch import Tensor, nn
+from nemo.collections.common.parts.utils import   mask_sequence_tensor
+from nemo.core.classes.common import typecheck
+from nemo.core.neural_types.elements import (
+    EncodedRepresentation,
+    Index,
+    LengthsType,
+)
+from nemo.core.neural_types.neural_type import NeuralType
+from nemo.utils import logging
 
 
 __all__ = ["BinarySphericalQuantizer"]
@@ -141,6 +152,63 @@ class BinarySphericalQuantizer(nn.Module):
         # ONNX compilable
         bits = ((toks[..., None] // self.mask) % 2).to(self.codebook.dtype)
         return self._bits_to_codes(bits) * self.codebook_value
+
+
+    @typecheck(
+        input_types={
+            "inputs": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={"indices": NeuralType(('D', 'B', 'T'), Index())},
+    )
+    def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
+        dequantized, indices = self(inputs=inputs, input_len=input_len)
+        print(f"encoding 13131333: dequantized shape: {dequantized.shape}")
+        print(f"encoding some values from dequantized: {return_first_samples(dequantized)}")
+        print(f"encoding 13131333: encode inputs shape: {inputs.shape}")
+        print(f"encoding some values from inputs: {return_first_samples(inputs)}")
+        print(f"encoding 13131333: indices shape: {indices.shape}")
+        print(f"encoding some values from indices: {return_first_samples(indices)}")
+
+        return indices
+
+    @typecheck(
+        input_types={
+            "indices": NeuralType(('D', 'B', 'T'), Index()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={
+            "dequantized": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+        },
+    )
+    def decode(self, indices: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Decode token indices [1, B, T] to quantized codes [B, D, T]."""
+        if indices.size(0) != 1:
+            raise ValueError(
+                    f"Expected a single codebook, got {indices.size(0)} codebooks for indices with shape {indices.shape}."
+                )
+
+        # [1, B, T] -> [B, T]
+        indices_bt = indices.squeeze(0)
+
+        # [B, T] -> [B, T, D]
+        dequantized_bt_d = self.toks_to_codes(indices_bt)
+
+        # [B, T, D] -> [B, D, T]
+        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
+
+        if input_len is not None:
+            dequantized = mask_sequence_tensor(dequantized, input_len)
+
+        print(f"decoding 13131333: dequantized shape: {dequantized.shape}")
+        print(f"decoding 13131333: indices shape: {indices.shape}")
+        print(f"decoding 13131333: codebook shape: {self.codebook.shape}")
+        print(f"decoding indices: {return_first_samples(indices)}")
+        print(f"decoding dequantized: {return_first_samples(dequantized)}")
+        
+
+        return dequantized
 
     def _bits_to_codes(self, bits: "Tensor") -> "Tensor":
         return bits * 2 - 1
