@@ -490,6 +490,8 @@ class Vocos(nn.Module):
                 device=output.device,
                 dtype=torch.long,
             )
+        else:
+            audio_len = input_len * self.hop_length
         return output, audio_len
 
 
