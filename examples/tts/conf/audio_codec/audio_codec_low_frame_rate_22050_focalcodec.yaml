@@ -171,10 +171,10 @@ model:
     # causal: false
 
   compressor:
-    _target_: nemo.collections.tts.modules.FocalEncoder
+    _target_: nemo.collections.tts.modules.focalnet.FocalEncoder
 
   decompressor:
-    _target_: nemo.collections.tts.modules.FocalDecoder
+    _target_: nemo.collections.tts.modules.focalnet.FocalDecoder
 
   vector_quantizer:
     _target_: nemo.collections.tts.modules.bsq.BinarySphericalQuantizer
