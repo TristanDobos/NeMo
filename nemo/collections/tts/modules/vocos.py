@@ -483,7 +483,14 @@ class Vocos(nn.Module):
         """
         output, left_contexts = self.backbone(inputs, left_contexts)
         output = self.head(output)
-        return output, left_contexts
+        if input_len is None:
+            audio_len = torch.full(
+                (output.size(0),),
+                output.size(1),
+                device=output.device,
+                dtype=torch.long,
+            )
+        return output, audio_len
 
 
 def test_model() -> "None":
