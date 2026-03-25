@@ -1175,8 +1175,14 @@ class WavLM(nn.Module):
         )
         left_contexts.append(left_context)
 
-        encoded_len = curr_pos if curr_pos is not None else torch.full(
-        (x.size(0),), x.size(1), device=x.device, dtype=torch.long)
+        encoded_len = torch.full(
+            (x.size(0),),
+            x.size(1),
+            device=x.device,
+            dtype=torch.long,
+        )
+
+ 
 
         print(f"Input audio shape: {audio.shape}")
         print(f"Output shape: {x.shape}")
