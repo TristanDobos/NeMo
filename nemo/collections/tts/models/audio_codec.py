@@ -90,6 +90,10 @@ class AudioCodecModel(ModelPT):
 
         # Encoder setup
         self.audio_encoder = instantiate(cfg.audio_encoder)
+        # Compressor
+        self.compressor = instantiate(cfg.compressor)
+        # Decompressor
+        self.decompressor = instantiate(cfg.decompressor)
 
         # Optionally, add gaussian noise to encoder output as an information bottleneck
         encoder_noise_stdev = cfg.get("encoder_noise_stdev", 0.0)
@@ -379,9 +383,14 @@ class AudioCodecModel(ModelPT):
         # vector quantizer is returning [C, B, T], where C is the number of codebooks
         print("HEREEEE")
         print("to be quantized: ", encoded.shape, encoded_len)
-        print("encoded first values: ", encoded[0, :5, :5])
-        tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
-        print("tokens first values: ", tokens[0, :5, :5])
+        print("encoded first values: ", return_first_samples(encoded))
+        compressed_encoded = self.compressor(encoded)
+        print("compressed_encoded: ", compressed_encoded.shape, encoded_len)
+        print("compressed_encoded first values: ", return_first_samples(compressed_encoded))
+
+
+        tokens = self.vector_quantizer.encode(inputs=compressed_encoded, input_len=encoded_len)
+        print("tokens first values: ", return_first_samples(tokens))
 
         print("tokens after quantization: ", tokens.shape)
 
@@ -390,7 +399,7 @@ class AudioCodecModel(ModelPT):
 
         print("tokens after quantization rearranged: ", tokens.shape)
 
-        print("rearranged first values: ", tokens[0, :5, :5])
+        print("rearranged first values: ", return_first_samples(tokens))
 
         return tokens
 
@@ -426,13 +435,19 @@ class AudioCodecModel(ModelPT):
 
         print("rearranged codes to be dequantized: ", tokens.shape, tokens_len)
 
+
         dequantized = self.vector_quantizer.decode(indices=tokens, input_len=tokens_len)
 
-        print("tokens first values: ", return_first_samples(tokens))
-        print("dequantized output: ", dequantized.shape)
-        print("dequantized first values: ", return_first_samples(dequantized))
+        print("dequantized before decompressor: ", dequantized.shape, tokens_len)
+        print("dequantized before decompressor first values: ", return_first_samples(dequantized))
 
-        return dequantized
+        decompressed_dequantized = self.decompressor(dequantized)
+
+        print("tokens first values: ", return_first_samples(tokens))
+        print("decompressed_dequantized output: ", decompressed_dequantized.shape)
+        print("decompressed_dequantized first values: ", return_first_samples(decompressed_dequantized))
+
+        return decompressed_dequantized
 
     @typecheck(
         input_types={
