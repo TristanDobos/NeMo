@@ -20,13 +20,204 @@
 # https://github.com/huggingface/transformers/blob/v4.46.2/src/transformers/models/focalnet/modeling_focalnet.py
 # https://github.com/microsoft/FocalNet/blob/v1.0.1/classification/focalnet.py
 
+import math
 from typing import List, Optional, Sequence, Tuple, Union
 
+from nemo.core.neural_types.elements import EncodedRepresentation
 import torch
 from torch import Size, Tensor, nn
+from typing import Tuple
+
+from nemo.collections.common.parts.utils import mask_sequence_tensor
+from nemo.collections.tts.modules.audio_codec_modules import return_first_samples
+import torch
+from torch import Tensor, nn
+from nemo.collections.common.parts.utils import   mask_sequence_tensor
+from nemo.core.classes.common import typecheck
+from nemo.core.neural_types.elements import (
+    EncodedRepresentation,
+    Index,
+    LengthsType,
+)
+from nemo.core.neural_types.neural_type import NeuralType
+
+__all__ = ["FocalDecoder", "FocalEncoder", "BinarySphericalQuantizer"]
+
+class BinarySphericalQuantizer(nn.Module):
+    """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
+
+    Parameters
+    ----------
+    codebook_size:
+        Number of binary codes in the codebook.
+
+    """
+
+    def __init__(self, codebook_size: "int" = 4096) -> "None":
+        super().__init__()
+        self.codebook_size = codebook_size
+        self.dim = int(math.log2(codebook_size))
+
+        # Buffers
+        self.register_buffer(
+            "codebook_value",
+            torch.tensor(1 / math.sqrt(self.dim)),
+            persistent=False,
+        )
+        self.register_buffer(
+            "mask", 2 ** torch.arange(self.dim - 1, -1, -1), persistent=False
+        )
+        all_codes = torch.arange(codebook_size)
+        bits = (all_codes[..., None].int() & self.mask) != 0
+        codebook = self._bits_to_codes(bits) * self.codebook_value
+        self.register_buffer("codebook", codebook, persistent=False)
+
+    def forward(self, lats: "Tensor") -> "Tuple[Tensor, Tensor]":
+        """Forward pass.
+
+        Parameters
+        ----------
+        lats:
+            Input latents of shape (..., dim).
+
+        Returns
+        -------
+            - Output tokens of shape (...);
+            - output codes (i.e. quantized latents) of shape (..., dim).
+
+        """
+        toks = self.lats_to_toks(lats)
+        codes = self.toks_to_codes(toks)
+        return toks, codes
+
+    @torch.jit.export
+    def lats_to_codes(self, lats: "Tensor") -> "Tensor":
+        """Transform latents into codes (i.e. quantized latents).
+
+        Parameters
+        ----------
+        lats:
+            Input latents of shape (..., dim).
+
+        Returns
+        -------
+            Output codes of shape (..., dim).
+
+        """
+        return torch.where(lats > 0, self.codebook_value, -self.codebook_value)
+
+    @torch.jit.export
+    def lats_to_toks(self, lats: "Tensor") -> "Tensor":
+        """Transform latents into tokens.
+
+        Parameters
+        ----------
+        lats:
+            Input latents of shape (..., dim).
+
+        Returns
+        -------
+            Output tokens of shape (...).
+
+        """
+        return self.codes_to_toks(lats)
+
+    @torch.jit.export
+    def codes_to_toks(self, codes: "Tensor") -> "Tensor":
+        """Transform codes (i.e. quantized latents) into tokens.
+
+        Parameters
+        ----------
+        codes:
+            Input codes of shape (..., dim).
+
+        Returns
+        -------
+            Output tokens of shape (...).
+
+        """
+        return ((codes > 0) * self.mask).sum(dim=-1)
+
+    @torch.jit.export
+    def toks_to_codes(self, toks: "Tensor") -> "Tensor":
+        """Transform tokens into codes (i.e. quantized latents).
+
+        Parameters
+        ----------
+        toks:
+            Input tokens of shape (...).
+
+        Returns
+        -------
+            Output codes of shape (..., dim).
+
+        """
+        # ONNX compilable
+        bits = ((toks[..., None] // self.mask) % 2).to(self.codebook.dtype)
+        return self._bits_to_codes(bits) * self.codebook_value
 
 
-__all__ = ["FocalDecoder", "FocalEncoder"]
+    @typecheck(
+        input_types={
+            "inputs": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={"indices": NeuralType(('D', 'B', 'T'), Index())},
+    )
+    def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
+        dequantized, indices = self(inputs=inputs, input_len=input_len)
+        print(f"encoding 13131333: dequantized shape: {dequantized.shape}")
+        print(f"encoding some values from dequantized: {return_first_samples(dequantized)}")
+        print(f"encoding 13131333: encode inputs shape: {inputs.shape}")
+        print(f"encoding some values from inputs: {return_first_samples(inputs)}")
+        print(f"encoding 13131333: indices shape: {indices.shape}")
+        print(f"encoding some values from indices: {return_first_samples(indices)}")
+
+        return indices
+
+    @typecheck(
+        input_types={
+            "indices": NeuralType(('D', 'B', 'T'), Index()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={
+            "dequantized": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+        },
+    )
+    def decode(self, indices: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Decode token indices [1, B, T] to quantized codes [B, D, T]."""
+        if indices.size(0) != 1:
+            raise ValueError(
+                    f"Expected a single codebook, got {indices.size(0)} codebooks for indices with shape {indices.shape}."
+                )
+
+        # [1, B, T] -> [B, T]
+        indices_bt = indices.squeeze(0)
+
+        # [B, T] -> [B, T, D]
+        dequantized_bt_d = self.toks_to_codes(indices_bt)
+
+        # [B, T, D] -> [B, D, T]
+        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
+
+        if input_len is not None:
+            dequantized = mask_sequence_tensor(dequantized, input_len)
+
+        print(f"decoding 13131333: dequantized shape: {dequantized.shape}")
+        print(f"decoding 13131333: indices shape: {indices.shape}")
+        print(f"decoding 13131333: codebook shape: {self.codebook.shape}")
+        print(f"decoding indices: {return_first_samples(indices)}")
+        print(f"decoding dequantized: {return_first_samples(dequantized)}")
+        
+
+        return dequantized
+
+    def _bits_to_codes(self, bits: "Tensor") -> "Tensor":
+        return bits * 2 - 1
+
+    def __repr__(self) -> "str":
+        return f"{self.__class__.__name__}(codebook_size={self.codebook_size})"
 
 
 class DynamicTanh(nn.Module):

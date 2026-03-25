@@ -177,7 +177,7 @@ model:
     _target_: nemo.collections.tts.modules.focalnet.FocalDecoder
 
   vector_quantizer:
-    _target_: nemo.collections.tts.modules.bsq.BinarySphericalQuantizer
+    _target_: nemo.collections.tts.modules.focalnet.BinarySphericalQuantizer
     # dim: ${encoder_out_dim}
     codebook_size: 4096
 
