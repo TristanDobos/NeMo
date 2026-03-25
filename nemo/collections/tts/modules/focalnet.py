@@ -167,15 +167,18 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
     )
     def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
+        print(f"ENCODE INPUT SHAPE: {inputs.shape}")
+        dequantized, indices = self(inputs=inputs, input_len=input_len)
+        print(f"ENCODE dequantized SHAPE: {dequantized.shape}")
+        print(f"ENCODE indices SHAPE: {indices.shape}")
 
-        lats = rearrange(inputs, "B D T -> B T D")
-        indices_bt, _ = self(lats)
-        indices = indices_bt.unsqueeze(0)
 
-        if input_len is not None:
-            max_t = indices.size(-1)
-            mask = torch.arange(max_t, device=indices.device)[None, :] >= input_len[:, None]
-            indices[0][mask] = 0
+        print(f"encoding 13131333: dequantized shape: {dequantized.shape}")
+        print(f"encoding some values from dequantized: {return_first_samples(dequantized)}")
+        print(f"encoding 13131333: encode inputs shape: {inputs.shape}")
+        print(f"encoding some values from inputs: {return_first_samples(inputs)}")
+        print(f"encoding 13131333: indices shape: {indices.shape}")
+        print(f"encoding some values from indices: {return_first_samples(indices)}")
 
         return indices
 
