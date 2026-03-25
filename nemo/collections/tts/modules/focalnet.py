@@ -1381,7 +1381,7 @@ class FocalEncoder(nn.Module):
             new_left_contexts.append(new_left_contexts_i)
         output = self.dropout(output)
         output = self.out_proj(output)
-        return output, new_left_contexts
+        return output
 
 
 class FocalDecoder(nn.Module):
@@ -1555,7 +1555,7 @@ class FocalDecoder(nn.Module):
         if self.causal and self.lookahead_size > 0:
             output = self.refiner(output)
 
-        return output, new_left_contexts
+        return output
 
 
 def test_model() -> "None":
