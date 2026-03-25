@@ -174,7 +174,7 @@ model:
     _target_: nemo.collections.tts.modules.focalnet.FocalEncoder
 
   decompressor:
-    _target_: nemo.collections.tts.modules.focalnet.FocalDecoder1
+    _target_: nemo.collections.tts.modules.focalnet.FocalDecoder
 
   vector_quantizer:
     _target_: nemo.collections.tts.modules.bsq.BinarySphericalQuantizer
