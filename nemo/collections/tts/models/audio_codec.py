@@ -578,9 +578,9 @@ class AudioCodecModel(ModelPT):
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
 
         encoded_before_compressor_shape = encoded.shape
-        print(f"encoded before compressor: ", encoded.shape, encoded_len)
+        # print(f"encoded before compressor: ", encoded.shape, encoded_len)
         encoded = self.compressor(encoded)
-        print(f"encoded after compressor: ", encoded.shape, encoded_len)
+        # print(f"encoded after compressor: ", encoded.shape, encoded_len)
         encoded_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
@@ -588,10 +588,10 @@ class AudioCodecModel(ModelPT):
 
         if self.vector_quantizer:
             if self.vector_quantizer_has_commit_loss:
-                print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
+                # print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
             else:
-                print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
+                # print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
                 commit_loss = 0.0
         else:
@@ -599,22 +599,22 @@ class AudioCodecModel(ModelPT):
         
         encoded_after_quantization = encoded.shape
 
-        print(f"encoded before decompressor: ", encoded.shape, encoded_len)
+        # print(f"encoded before decompressor: ", encoded.shape, encoded_len)
         encoded = self.decompressor(encoded)
-        print(f"encoded after decompressor: ", encoded.shape, encoded_len)
-        encoded_after_decompressor_shape = encoded.shape
+        # print(f"encoded after decompressor: ", encoded.shape, encoded_len)
+        # encoded_after_decompressor_shape = encoded.shape
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
-        print("generated audio: ", audio_gen.shape)
+        # print("generated audio: ", audio_gen.shape)
 
-        print("the evolution of all the shapes:")
-        print("init_audio_shape: ", init_audio_shape)
-        print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
-        print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
-        print("encoded_after_quantization: ", encoded_after_quantization)
-        print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
-        print("audio_gen shape: ", audio_gen.shape)
+        # print("the evolution of all the shapes:")
+        # print("init_audio_shape: ", init_audio_shape)
+        # print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
+        # print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
+        # print("encoded_after_quantization: ", encoded_after_quantization)
+        # print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
+        # print("audio_gen shape: ", audio_gen.shape)
 
         gen_len = audio_gen.shape[-1] 
 
