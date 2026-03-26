@@ -475,7 +475,9 @@ class AudioCodecModel(ModelPT):
         # Apply encoder to obtain a continuous vector for each frame
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
         # Apply quantizer to obtain discrete representation per frame
+        print("11111encoded before quantization: ", encoded.shape, encoded_len)
         tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
+        print("11111tokens after quantization: ", tokens.shape, encoded_len)
         return tokens, encoded_len
 
     @typecheck(
@@ -529,13 +531,18 @@ class AudioCodecModel(ModelPT):
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
 
         if self.vector_quantizer:
+            print("22222encoded before quantization: ", encoded.shape, encoded_len)
             # quantize to discrete tokens
             tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
+            print("22222tokens after quantization: ", tokens.shape, encoded_len)
             # decode tokens to audio
             output_audio, output_audio_len = self.decode(tokens=tokens, tokens_len=encoded_len)
+            print("22222output_audio: ", output_audio.shape, output_audio_len)
         else:
             # no quantization, directly decode to audio
+            print("33333encoded before decoding: ", encoded.shape, encoded_len)
             output_audio, output_audio_len = self.decode_audio(inputs=encoded, input_len=encoded_len)
+            print("33333output_audio: ", output_audio.shape, output_audio_len)
 
         return output_audio, output_audio_len
 
