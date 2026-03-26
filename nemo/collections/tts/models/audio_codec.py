@@ -548,38 +548,19 @@ class AudioCodecModel(ModelPT):
         return output_audio, output_audio_len
 
     def pad_audio(self, audio, audio_len):
-        """Zero pad the end of the audio so that we do not have a partial end frame.
-        The output will be zero-padded to have an integer number of frames of
-        length `self.samples_per_frame`.
-
-        Args:
-            audio: input time-domain signal
-            audio_len: valid length for each example in the batch
-
-        Returns:
-            Padded time-domain signal `padded_audio` and its length `padded_len`.
-        """
-        # 1. Calculate the target length for each item (multiple of hop size)
-        # Ensure self.samples_per_frame is exactly your system stride (e.g., 320)
-        padded_len = self.samples_per_frame * torch.ceil(audio_len / self.samples_per_frame).int()
-        print("samples_per_frame: ", self.samples_per_frame)
-        print(torch.ceil(audio_len / self.samples_per_frame).int())
+        hop = 320 # WavLM's total stride
         
-        # 2. Find the absolute maximum length needed for the tensor dim
+        # We add +1 to the ceil to ensure the 'receptive field' 
+        # of the last WavLM convolution has enough data.
+        target_num_frames = torch.ceil(audio_len / hop).int() + 1
+        padded_len = target_num_frames * hop
+        
         max_len = padded_len.max().item()
-
-        print(f"Padding audio from original length {audio_len} to {padded_len}, max length in batch: {max_len}")
-        
-        # 3. Calculate padding based on the CURRENT tensor shape
-        # Use max() to ensure we never have negative padding
         num_padding = int(max_len - audio.shape[1])
         
-        if num_padding > 0:
-            # Pad only the last dimension (time)
-            padded_audio = F.pad(audio, (0, num_padding))
-        else:
-            padded_audio = audio
-            
+        # Apply the padding
+        padded_audio = torch.nn.functional.pad(audio, (0, num_padding))
+        
         return padded_audio, padded_len
 
     def _process_batch(self, batch):
