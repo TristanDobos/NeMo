@@ -572,12 +572,17 @@ class AudioCodecModel(ModelPT):
         audio_len = batch.get("audio_lens")
         audio, audio_len = self.pad_audio(audio, audio_len)
 
+        init_audio_shape = audio.shape
+        print(f"initial audio shape: {init_audio_shape}, audio_len: {audio_len}")
+
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
 
+        encoded_before_compressor_shape = encoded.shape
         print(f"encoded before compressor: ", encoded.shape, encoded_len)
         encoded = self.compressor(encoded)
         print(f"encoded after compressor: ", encoded.shape, encoded_len)
+        encoded_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
             encoded = self.encoder_noise(encoded)
@@ -592,16 +597,32 @@ class AudioCodecModel(ModelPT):
                 commit_loss = 0.0
         else:
             commit_loss = 0.0
+        
+        encoded_after_quantization = encoded.shape
 
         print(f"encoded before decompressor: ", encoded.shape, encoded_len)
         encoded = self.decompressor(encoded)
         print(f"encoded after decompressor: ", encoded.shape, encoded_len)
+        encoded_after_decompressor_shape = encoded.shape
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
         print("generated audio: ", audio_gen.shape)
 
+        print("the evolution of all the shapes:")
+        print("init_audio_shape: ", init_audio_shape)
+        print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
+        print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
+        print("encoded_after_quantization: ", encoded_after_quantization)
+        print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
+        print("audio_gen shape: ", audio_gen.shape)
+
+        
+
         assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
+
+
+
 
         return audio, audio_len, audio_gen, commit_loss
 
