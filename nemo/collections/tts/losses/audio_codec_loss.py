@@ -167,6 +167,9 @@ class MultiResolutionMelLoss(Loss):
 
     @typecheck()
     def forward(self, audio_real, audio_gen, audio_len):
+        print("audio_real shape: ", audio_real.shape)
+        print("audio_gen shape: ", audio_gen.shape)
+        assert audio_real.shape == audio_gen.shape
         l1_loss = 0.0
         l2_loss = 0.0
         for mel_feature in self.mel_features:
