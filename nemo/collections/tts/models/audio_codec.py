@@ -529,6 +529,7 @@ class AudioCodecModel(ModelPT):
             Reconstructed time-domain signal `output_audio` and its length in number of samples `output_audio_len`.
         """
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
+        encoded = self.compressor(encoded)
 
         if self.vector_quantizer:
             print("22222encoded before quantization: ", encoded.shape, encoded_len)
@@ -536,13 +537,18 @@ class AudioCodecModel(ModelPT):
             tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
             print("22222tokens after quantization: ", tokens.shape, encoded_len)
             # decode tokens to audio
-            output_audio, output_audio_len = self.decode(tokens=tokens, tokens_len=encoded_len)
+            output_audio = self.decompressor(output_audio)
             print("22222output_audio: ", output_audio.shape, output_audio_len)
+            output_audio, output_audio_len = self.decode(tokens=tokens, tokens_len=encoded_len)
+            print("22222output_audio after quantization: ", output_audio.shape)
         else:
             # no quantization, directly decode to audio
-            print("33333encoded before decoding: ", encoded.shape, encoded_len)
-            output_audio, output_audio_len = self.decode_audio(inputs=encoded, input_len=encoded_len)
             print("33333output_audio: ", output_audio.shape, output_audio_len)
+            output_audio = self.decompressor(output_audio)
+            print("33333encoded before decoding after decompression: ", output_audio.shape)
+            output_audio, output_audio_len = self.decode_audio(inputs=encoded, input_len=encoded_len)
+            print("22222output_audio after quantization: ", output_audio.shape)
+
 
         return output_audio, output_audio_len
 
