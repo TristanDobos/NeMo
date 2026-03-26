@@ -616,6 +616,12 @@ class AudioCodecModel(ModelPT):
         print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
         print("audio_gen shape: ", audio_gen.shape)
 
+        gen_len = audio_gen.shape[-1] 
+
+        # 3. Trim the original (padded) audio to match the generated audio
+        # This ensures both are exactly 220,800 (or 167,040)
+        audio = audio[..., :gen_len]
+
         
 
         assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
