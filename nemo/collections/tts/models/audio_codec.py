@@ -562,9 +562,13 @@ class AudioCodecModel(ModelPT):
         # 1. Calculate the target length for each item (multiple of hop size)
         # Ensure self.samples_per_frame is exactly your system stride (e.g., 320)
         padded_len = self.samples_per_frame * torch.ceil(audio_len / self.samples_per_frame).int()
+        print("samples_per_frame: ", self.samples_per_frame)
+        print(torch.ceil(audio_len / self.samples_per_frame).int())
         
         # 2. Find the absolute maximum length needed for the tensor dim
         max_len = padded_len.max().item()
+
+        print(f"Padding audio from original length {audio_len} to {padded_len}, max length in batch: {max_len}")
         
         # 3. Calculate padding based on the CURRENT tensor shape
         # Use max() to ensure we never have negative padding
@@ -583,6 +587,7 @@ class AudioCodecModel(ModelPT):
         audio = batch.get("audio")
         # [B]
         audio_len = batch.get("audio_lens")
+        print("original audio shape before padding: ", audio.shape, audio_len)
         audio, audio_len = self.pad_audio(audio, audio_len)
 
         init_audio_shape = audio.shape
