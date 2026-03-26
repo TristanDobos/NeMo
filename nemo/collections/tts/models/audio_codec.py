@@ -567,7 +567,9 @@ class AudioCodecModel(ModelPT):
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
 
-
+        print(f"encoded before compressor: ", encoded.shape, encoded_len)
+        encoded = self.compressor(encoded)
+        print(f"encoded after compressor: ", encoded.shape, encoded_len)
 
         if self.encoder_noise is not None:
             encoded = self.encoder_noise(encoded)
@@ -583,9 +585,9 @@ class AudioCodecModel(ModelPT):
         else:
             commit_loss = 0.0
 
-        print(f"encoded before compressor: ", encoded.shape, encoded_len)
-        encoded = self.compressor(encoded)
-        print(f"encoded after compressor: ", encoded.shape, encoded_len)
+        print(f"encoded before decompressor: ", encoded.shape, encoded_len)
+        encoded = self.decompressor(encoded)
+        print(f"encoded after decompressor: ", encoded.shape, encoded_len)
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
