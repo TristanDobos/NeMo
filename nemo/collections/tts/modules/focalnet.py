@@ -177,6 +177,7 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         print(f"encoding some values from dequantized: {return_first_samples(dequantized)}")
         print(f"encoding 13131333: encode inputs shape: {inputs.shape}")
         print(f"encoding some values from inputs: {return_first_samples(inputs)}")
+        indices = indices.unsqueeze(0)  # [1, B, T]
         print(f"encoding 13131333: indices shape: {indices.shape}")
         print(f"encoding some values from indices: {return_first_samples(indices)}")
 
