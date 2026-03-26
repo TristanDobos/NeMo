@@ -83,16 +83,16 @@ class BinarySphericalQuantizer(nn.Module):
 
     @typecheck()
     def forward(
-        self, inputs: Tensor, input_len: Optional[Tensor] = None
-    ) -> Tuple[Tensor, Tensor]:
+        self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         inputs: [B, D, T]
         returns:
           dequantized: [B, D, T]
-          indices:     [1, B, T]
+          indices:     [D, B, T] (where D=1)
         """
         # [B, D, T] -> [B, T, D]
-        lats_bt_d = rearrange(inputs, "B D T -> B T D")
+        lats_bt_d = rearrange(inputs, "b d t -> b t d")
 
         # [B, T, D] -> [B, T]
         toks_bt = self.lats_to_toks(lats_bt_d)
@@ -101,9 +101,10 @@ class BinarySphericalQuantizer(nn.Module):
         dequantized_bt_d = self.toks_to_codes(toks_bt)
 
         # [B, T, D] -> [B, D, T]
-        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
+        dequantized = rearrange(dequantized_bt_d, "b t d -> b d t")
 
-        # [B, T] -> [1, B, T]
+        # [B, T] -> [1, B, T] 
+        # Crucial: Ensure this is (D, B, T) for NeMo's internal validation
         indices = toks_bt.unsqueeze(0)
 
         if input_len is not None:
