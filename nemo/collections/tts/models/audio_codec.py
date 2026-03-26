@@ -443,6 +443,9 @@ class AudioCodecModel(ModelPT):
         print("dequantized before decompressor: ", dequantized.shape, tokens_len)
         print("dequantized before decompressor first values: ", return_first_samples(dequantized))
 
+        if dequantized.shape[1] == 12: 
+            dequantized = rearrange(dequantized, "b d t -> b t d")
+
         decompressed_dequantized = self.decompressor(dequantized)
 
         print("tokens first values: ", return_first_samples(tokens))
