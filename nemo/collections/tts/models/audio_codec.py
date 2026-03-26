@@ -533,9 +533,10 @@ class AudioCodecModel(ModelPT):
         print("1111122222encoded before quantization: ", encoded.shape, encoded_len)
         if self.vector_quantizer:
             tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
-            print("22222output_audio: ", output_audio.shape, output_audio_len)
+            print("22222tokens: ", tokens.shape)
             output_audio, output_audio_len = self.decode(tokens=tokens, tokens_len=encoded_len)
             print("22222output_audio after quantization: ", output_audio.shape)
+            print("output_audio_len after quantization: ", output_audio_len)
         else:
             output_audio, output_audio_len = self.decode_audio(inputs=encoded, input_len=encoded_len)
             print("22222output_audio after quantization: ", output_audio.shape)
