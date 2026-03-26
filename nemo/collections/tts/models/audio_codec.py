@@ -567,6 +567,8 @@ class AudioCodecModel(ModelPT):
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
 
+        encoded = self.compressor(encoded)
+
         if self.encoder_noise is not None:
             encoded = self.encoder_noise(encoded)
 
