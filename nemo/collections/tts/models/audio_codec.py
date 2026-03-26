@@ -599,6 +599,9 @@ class AudioCodecModel(ModelPT):
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
+        print("generated audio: ", audio_gen.shape)
+
+        assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
 
         return audio, audio_len, audio_gen, commit_loss
 
