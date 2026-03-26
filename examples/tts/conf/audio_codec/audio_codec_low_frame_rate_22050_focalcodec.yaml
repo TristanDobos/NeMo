@@ -266,5 +266,5 @@ exp_manager:
     save_top_k: 3
     save_best_model: true
     always_save_nemo: true
-  resume_if_exists: false
-  resume_ignore_no_checkpoint: false
+  resume_if_exists: true
+  resume_ignore_no_checkpoint: true
