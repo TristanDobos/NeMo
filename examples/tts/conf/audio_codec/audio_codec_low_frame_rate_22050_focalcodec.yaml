@@ -6,7 +6,7 @@ name: FocalcodecWithoutMetricsNew
 
 max_epochs: 200 # 250 initally
 # Adjust batch size based on GPU memory
-batch_size: 1
+batch_size: 2
 workers_num: 8
 # When doing weighted sampling with multiple manifests, this defines how many training steps are in an epoch.
 # If null, then weighted sampling is disabled.
