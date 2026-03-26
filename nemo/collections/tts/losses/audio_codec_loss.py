@@ -55,6 +55,8 @@ class MaskedLoss(Loss):
 
     @typecheck()
     def forward(self, predicted, target, target_len):
+        print("predicted shape: ", predicted.shape)
+        print("target shape: ", target.shape)
         assert target.shape[2] == predicted.shape[2]
 
         # [B, D, T]
