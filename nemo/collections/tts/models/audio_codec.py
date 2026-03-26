@@ -559,10 +559,23 @@ class AudioCodecModel(ModelPT):
         Returns:
             Padded time-domain signal `padded_audio` and its length `padded_len`.
         """
+        # 1. Calculate the target length for each item (multiple of hop size)
+        # Ensure self.samples_per_frame is exactly your system stride (e.g., 320)
         padded_len = self.samples_per_frame * torch.ceil(audio_len / self.samples_per_frame).int()
+        
+        # 2. Find the absolute maximum length needed for the tensor dim
         max_len = padded_len.max().item()
-        num_padding = max_len - audio.shape[1]
-        padded_audio = F.pad(audio, (0, num_padding))
+        
+        # 3. Calculate padding based on the CURRENT tensor shape
+        # Use max() to ensure we never have negative padding
+        num_padding = int(max_len - audio.shape[1])
+        
+        if num_padding > 0:
+            # Pad only the last dimension (time)
+            padded_audio = F.pad(audio, (0, num_padding))
+        else:
+            padded_audio = audio
+            
         return padded_audio, padded_len
 
     def _process_batch(self, batch):
