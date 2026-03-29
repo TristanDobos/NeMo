@@ -1184,12 +1184,12 @@ class WavLM(nn.Module):
 
  
 
-        print(f"Input audio shape: {audio.shape}")
-        print(f"Output shape: {x.shape}")
-        print(f"Encoded length: {encoded_len.shape}")
-        print(f"example audio: {return_first_samples(audio)}")
-        print(f"example output: {return_first_samples(x)}")
-        print(f"example encoded length: {return_first_samples(encoded_len)}")
+        # print(f"Input audio shape: {audio.shape}")
+        # print(f"Output shape: {x.shape}")
+        # print(f"Encoded length: {encoded_len.shape}")
+        # print(f"example audio: {return_first_samples(audio)}")
+        # print(f"example output: {return_first_samples(x)}")
+        # print(f"example encoded length: {return_first_samples(encoded_len)}")
 
         return x, encoded_len
 

@@ -201,7 +201,7 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
         """
         # inputs_btd = rearrange(inputs, "b d t -> b t d")
-        print("111forward inputs: ", inputs.shape, input_len)
+        # print("111forward inputs: ", inputs.shape, input_len)
         toks = self.lats_to_toks(inputs)
         codes_btd = self.toks_to_codes(toks)
 
