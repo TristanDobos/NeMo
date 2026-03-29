@@ -359,6 +359,17 @@ class AudioCodecModel(ModelPT):
             Decoded output `audio` in the time domain and its length in number of samples `audio_len`.
             Note that `audio_len` will be a multiple of `self.samples_per_frame`.
         """
+
+        print(f"DEBUG: Entering audio_decoder with shape {inputs.shape}") 
+    
+        # If the log shows [1, 1024, 522] but it crashes, 
+        # then Vocos wants [1, 522, 1024].
+
+        # Try forcing the flip here:
+        if inputs.shape[1] == self.encoder_out_dim: # if it's 1024
+                inputs = inputs.transpose(1, 2)
+        print(f"DEBUG: Entering audio_decoder222 with shape {inputs.shape}") 
+        
         audio, audio_len = self.audio_decoder(inputs=inputs, input_len=input_len)
         return audio, audio_len
 
