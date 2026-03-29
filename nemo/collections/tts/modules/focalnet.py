@@ -200,9 +200,9 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
             - Output tokens of shape (...);
 
         """
-        inputs_btd = rearrange(inputs, "b d t -> b t d")
+        # inputs_btd = rearrange(inputs, "b d t -> b t d")
         print("111forward inputs: ", inputs.shape, input_len)
-        toks = self.lats_to_toks(inputs_btd)
+        toks = self.lats_to_toks(inputs)
         codes_btd = self.toks_to_codes(toks)
 
         codes = rearrange(codes_btd, "b t d -> b d t")
