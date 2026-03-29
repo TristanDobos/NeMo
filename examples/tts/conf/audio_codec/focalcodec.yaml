@@ -191,12 +191,12 @@ model:
     discriminators:
       # Multi-Period Discriminator (MPD):
       # Analyzes the signal at different periodic intervals to capture pitch/harmonics
-      - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiPeriodDiscriminator
+      - _target_: nemo.collections.tts.modules.hifigan_modules.MultiPeriodDiscriminator
         periods: [2, 3, 5, 7, 11] # Standard HiFi-GAN periods
 
       # Multi-Scale Discriminator (MSD):
       # Analyzes the signal at different resolutions (original, 2x downsampled, 4x downsampled)
-      - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiScaleDiscriminator
+      - _target_: nemo.collections.tts.modules.hifigan_modules.MultiScaleDiscriminator
 
   generator_loss:
     _target_: nemo.collections.tts.losses.audio_codec_loss.GeneratorSquaredLoss
