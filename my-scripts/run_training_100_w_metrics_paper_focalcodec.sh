@@ -19,7 +19,7 @@ init_conda() {
  unset __conda_setup
 }
 
-. /mnt/matylda6/xdobos00/nemo_final/bin/activae
+. /mnt/matylda6/xdobos00/nemo_final/bin/activate
 
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
