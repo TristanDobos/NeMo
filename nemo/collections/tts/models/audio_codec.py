@@ -616,15 +616,13 @@ class AudioCodecModel(ModelPT):
         else:
             commit_loss = 0.0
 
-        dequantized = encoded
-        
         encoded_after_quantization = encoded.shape
 
         print(f"encoded before decompressor: ", encoded.shape, encoded_len)
 
-        if dequantized.shape[1] == self.compressor_output_dim:
+        if encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
-            dequantized = dequantized.transpose(1, 2)
+            encoded = encoded.transpose(1, 2)
         print(f"encoded before decompressor2: ", encoded.shape, encoded_len)
         
 
