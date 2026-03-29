@@ -19,7 +19,7 @@ init_conda() {
  unset __conda_setup
 }
 
-. /mnt/matylda6/xdobos00/nemo_final/bin/activate
+. /mnt/matylda6/xdobos00/nemo_final/bin/activae
 
 export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
@@ -72,7 +72,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 6)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
 
