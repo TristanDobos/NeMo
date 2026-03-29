@@ -506,8 +506,11 @@ class AudioCodecModel(ModelPT):
         """
         # Convert a discrete representation to a dequantized vector for each frame
         dequantized = self.dequantize(tokens=tokens, tokens_len=tokens_len)
+
+        decompressed_dequantized = self.decompressor(dequantized)
+        
         # Apply decoder to obtain time-domain audio for each frame
-        audio, audio_len = self.decode_audio(inputs=dequantized, input_len=tokens_len)
+        audio, audio_len = self.decode_audio(inputs=decompressed_dequantized, input_len=tokens_len)
 
         return audio, audio_len
 
