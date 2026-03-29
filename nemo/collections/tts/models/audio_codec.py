@@ -441,25 +441,15 @@ class AudioCodecModel(ModelPT):
         dequantized = self.vector_quantizer.decode(indices=quant_input, input_len=tokens_len)
         print("dequantized after decoding: ", dequantized.shape, tokens_len)
 
-        # 3. CRITICAL: Ensure shape is [Batch, Time, Dimension] for FocalNet (Linear layers)
-        # Check if the last dimension is NOT our feature dimension (16)
-        if dequantized.shape[-1] != self.compressor_output_dim:
-            # This handles the case where it came out as [B, D, T]
+        # FocalNet (Decompressor) needs [B, T, C]
+        if dequantized.shape[1] == self.compressor_output_dim:
             dequantized = rearrange(dequantized, "b d t -> b t d")
-        print("dequantized after ensuring correct shape: ", dequantized.shape, tokens_len)
-
-        # 4. Decompress (16 -> 1024)
-        # Based on your error, ensure 'dequantized' hasn't somehow become 1024 yet
-        decompressed_dequantized = self.decompressor(dequantized)
-        print("decompressed_dequantized: ", decompressed_dequantized.shape, tokens_len)
-
-        # 5. Final check: Most Vocoders (Vocos) expect [B, D, T]
-        # If your decoder (Vocos) expects channels in the middle, flip it back:
-        if decompressed_dequantized.shape[-1] == self.encoder_out_dim:
-            decompressed_dequantized = rearrange(decompressed_dequantized, "b t d -> b d t")
-        print("7a8df7a9df7a decompressed_dequantized after final rearrange: ", decompressed_dequantized.shape, tokens_len)
-
-        return decompressed_dequantized
+        
+        # Shape is now [B, 522, 16]
+        decompressed = self.decompressor(dequantized) 
+        # Shape is now [B, 522, 1024]
+        
+        return decompressed
 
     @typecheck(
         input_types={
