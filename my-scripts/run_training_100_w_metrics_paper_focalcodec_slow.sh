@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-${JOB_ID}-${JOB_NAME}.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-${JOB_ID}-${JOB_NAME}.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/$JOB_NAME.$JOB_ID.out
+#$ -e /mnt/matylda6/xdobos00/runs/logs/$JOB_NAME.$JOB_ID.err
 
 ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
 
