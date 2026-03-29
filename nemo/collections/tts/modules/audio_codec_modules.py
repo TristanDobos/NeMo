@@ -53,6 +53,15 @@ try:
 except ModuleNotFoundError:
     HAVE_FSSPEC = False
 
+def return_first_samples(output):
+    if output.dim() == 4:
+        return output[0, 0, 0, :5]
+    elif output.dim() == 3:
+        return output[0, 0, :5]
+    elif output.dim() == 2:
+        return output[0, :5]
+    else:
+        return output
 
 def get_padding(kernel_size: int, dilation: int = 1) -> int:
     return (kernel_size * dilation - dilation) // 2
