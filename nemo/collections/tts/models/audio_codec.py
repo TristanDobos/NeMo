@@ -390,7 +390,7 @@ class AudioCodecModel(ModelPT):
         compressed_encoded = self.compressor(encoded)
         # print("compressed_encoded: ", compressed_encoded.shape, encoded_len)
         # print("compressed_encoded first values: ", return_first_samples(compressed_encoded))
-        print("compressed_encodedq111: ", compressed_encoded)
+        print("compressor output dim: ", compressed_encoded.shape)
         print("encoded_len ", encoded_len)
 
 
