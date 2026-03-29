@@ -154,6 +154,8 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         print("the performs masking on the last dimension, which is of size: ", inputs.shape[-1])
 
         # 2. Quantize (Using the logic in your second forward)
+        print("111encode inputs: ", inputs.shape, input_len)
+
         indices_bt = self.lats_to_toks(inputs)
 
         # 3. NeMo expects [C, B, T] where C is number of codebooks (1 in this case)
@@ -199,6 +201,7 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
         """
         inputs_btd = rearrange(inputs, "b d t -> b t d")
+        print("111forward inputs: ", inputs.shape, input_len)
         toks = self.lats_to_toks(inputs_btd)
         codes_btd = self.toks_to_codes(toks)
 
