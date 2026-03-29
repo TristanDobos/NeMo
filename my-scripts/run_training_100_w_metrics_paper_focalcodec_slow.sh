@@ -1,7 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-3.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-3.err            # standard error log file
-
+#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-${JOB_ID}-${JOB_NAME}.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-${JOB_ID}-${JOB_NAME}.err            # standard error log file
 
 ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
 
@@ -96,3 +95,4 @@ python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$C
 
 
 
+ qsub -N focalcodecs -q long.q -l gpu=4,gpu_ram=20G,ram_free=20G,mem_free=20G,matylda6=1 /mnt/matylda6/xdobos00/NeMo/my-scripts/run_training_100_w_metrics_paper_focalcodec_slow.sh
