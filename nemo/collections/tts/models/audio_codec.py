@@ -586,19 +586,19 @@ class AudioCodecModel(ModelPT):
         audio = batch.get("audio")
         # [B]
         audio_len = batch.get("audio_lens")
-        print("original audio shape before padding: ", audio.shape, audio_len)
+        # print("original audio shape before padding: ", audio.shape, audio_len)
         audio, audio_len = self.pad_audio(audio, audio_len)
 
         init_audio_shape = audio.shape
-        print(f"initial audio shape: {init_audio_shape}, audio_len: {audio_len}")
+        # print(f"initial audio shape: {init_audio_shape}, audio_len: {audio_len}")
 
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
 
         encoded_before_compressor_shape = encoded.shape
-        print(f"encoded before compressor: ", encoded.shape, encoded_len)
+        # print(f"encoded before compressor: ", encoded.shape, encoded_len)
         encoded = self.compressor(encoded)
-        print(f"encoded after compressor: ", encoded.shape, encoded_len)
+        # print(f"encoded after compressor: ", encoded.shape, encoded_len)
         encoded_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
@@ -606,11 +606,11 @@ class AudioCodecModel(ModelPT):
 
         if self.vector_quantizer:
             if self.vector_quantizer_has_commit_loss:
-                print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
+                # print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded = rearrange(encoded, "b d t -> b t d")
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
             else:
-                print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
+                # print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
                 commit_loss = 0.0
         else:
@@ -618,29 +618,29 @@ class AudioCodecModel(ModelPT):
 
         encoded_after_quantization = encoded.shape
 
-        print(f"encoded before decompressor: ", encoded.shape, encoded_len)
+        # print(f"encoded before decompressor: ", encoded.shape, encoded_len)
 
         if encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
             encoded = encoded.transpose(1, 2)
-        print(f"encoded before decompressor2: ", encoded.shape, encoded_len)
+        # print(f"encoded before decompressor2: ", encoded.shape, encoded_len)
         
 
         encoded = self.decompressor(encoded)
-        print(f"encoded after decompressor: ", encoded.shape, encoded_len)
+        # print(f"encoded after decompressor: ", encoded.shape, encoded_len)
         encoded_after_decompressor_shape = encoded.shape
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
-        print("generated audio: ", audio_gen.shape)
+        # print("generated audio: ", audio_gen.shape)
 
-        print("the evolution of all the shapes:")
-        print("init_audio_shape: ", init_audio_shape)
-        print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
-        print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
-        print("encoded_after_quantization: ", encoded_after_quantization)
-        print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
-        print("audio_gen shape: ", audio_gen.shape)
+        # print("the evolution of all the shapes:")
+        # print("init_audio_shape: ", init_audio_shape)
+        # print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
+        # print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
+        # print("encoded_after_quantization: ", encoded_after_quantization)
+        # print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
+        # print("audio_gen shape: ", audio_gen.shape)
 
         gen_len = audio_gen.shape[-1] 
 
