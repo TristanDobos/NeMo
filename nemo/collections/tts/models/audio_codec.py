@@ -426,33 +426,37 @@ class AudioCodecModel(ModelPT):
         Returns:
             Continuous encoded representation of the discrete input representation.
         """
-        if not self.vector_quantizer:
-            raise ValueError("Cannot dequantize without quantizer")
+        # 1. Prepare tokens for the quantizer (Standard NeMo BSQ expects C, B, T)
+        # Ensure tokens are [B, C, T] before flipping to [C, B, T]
+        if tokens.ndim == 2: # Handle [B, T] case
+            tokens = tokens.unsqueeze(1)
+        print("7a8df7a9df7a tokens before dequantization: ", tokens.shape, tokens_len)
 
-        # vector quantizer is using [C, B, T], where C is the number of codebooks
+        quant_input = rearrange(tokens, 'b c t -> c b t')
+        print("tokens after rearrange for dequantization: ", quant_input.shape)
 
-        print("dequantization!!!")
-        print("tokens to be dequantized: ", tokens.shape, tokens_len)
-        print("tokens first values: ", return_first_samples(tokens))
+        # 2. Decode indices to continuous vectors
+        # BSQ usually returns [B, T, D] or [B, D, T]
+        dequantized = self.vector_quantizer.decode(indices=quant_input, input_len=tokens_len)
+        print("dequantized after decoding: ", dequantized.shape, tokens_len)
 
-        tokens = rearrange(tokens, 'B C T -> C B T')
-
-        print("rearranged codes to be dequantized: ", tokens.shape, tokens_len)
-
-
-        dequantized = self.vector_quantizer.decode(indices=tokens, input_len=tokens_len)
-
-        print("dequantized before decompressor: ", dequantized.shape, tokens_len)
-        print("dequantized before decompressor first values: ", return_first_samples(dequantized))
-
-        if dequantized.shape[1] == self.compressor_output_dim: 
+        # 3. CRITICAL: Ensure shape is [Batch, Time, Dimension] for FocalNet (Linear layers)
+        # Check if the last dimension is NOT our feature dimension (16)
+        if dequantized.shape[-1] != self.compressor_output_dim:
+            # This handles the case where it came out as [B, D, T]
             dequantized = rearrange(dequantized, "b d t -> b t d")
+        print("dequantized after ensuring correct shape: ", dequantized.shape, tokens_len)
 
+        # 4. Decompress (16 -> 1024)
+        # Based on your error, ensure 'dequantized' hasn't somehow become 1024 yet
         decompressed_dequantized = self.decompressor(dequantized)
+        print("decompressed_dequantized: ", decompressed_dequantized.shape, tokens_len)
 
-        print("tokens first values: ", return_first_samples(tokens))
-        print("decompressed_dequantized output: ", decompressed_dequantized.shape)
-        print("decompressed_dequantized first values: ", return_first_samples(decompressed_dequantized))
+        # 5. Final check: Most Vocoders (Vocos) expect [B, D, T]
+        # If your decoder (Vocos) expects channels in the middle, flip it back:
+        if decompressed_dequantized.shape[-1] == self.encoder_out_dim:
+            decompressed_dequantized = rearrange(decompressed_dequantized, "b t d -> b d t")
+        print("7a8df7a9df7a decompressed_dequantized after final rearrange: ", decompressed_dequantized.shape, tokens_len)
 
         return decompressed_dequantized
 
@@ -506,17 +510,19 @@ class AudioCodecModel(ModelPT):
             Decoded output `audio` in the time domain and its length in number of samples `audio_len`.
             Note that `audio_len` will be a multiple of `self.samples_per_frame`.
         """
-        # Convert a discrete representation to a dequantized vector for each frame
-        dequantized = self.dequantize(tokens=tokens, tokens_len=tokens_len)
+        # 1. This now returns the 1024-dim tensor (because decompressor is inside it)
+        print("24324233422 tokens before dequantization in decode: ", tokens.shape, tokens_len)
+        decompressed_dequantized = self.dequantize(tokens=tokens, tokens_len=tokens_len)
+        print("decompressed_dequantized in decode: ", decompressed_dequantized.shape, tokens_len)
 
-        if dequantized.shape[1] == self.compressor_output_dim:
-            # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
-            dequantized = dequantized.transpose(1, 2)
-
-        decompressed_dequantized = self.decompressor(dequantized)
-        
-        # Apply decoder to obtain time-domain audio for each frame
+        # 2. Skip the second decompressor call! 
+        # Just ensure the shape is right for Vocos (usually [B, C, T])
+        if decompressed_dequantized.shape[-1] == self.encoder_out_dim:
+            decompressed_dequantized = decompressed_dequantized.transpose(1, 2)
+            
+        # 3. Apply Vocos decoder
         audio, audio_len = self.decode_audio(inputs=decompressed_dequantized, input_len=tokens_len)
+        print("audio after decoding: ", audio.shape, audio_len)
 
         return audio, audio_len
 
