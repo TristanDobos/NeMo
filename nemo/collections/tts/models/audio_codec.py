@@ -512,6 +512,7 @@ class AudioCodecModel(ModelPT):
             decompressed_dequantized = decompressed_dequantized.transpose(1, 2)
             
         # 3. Apply Vocos decoder
+        print("decompressed_dequantized before Vocos decoder: ", decompressed_dequantized.shape)
         audio, audio_len = self.decode_audio(inputs=decompressed_dequantized, input_len=tokens_len)
         print("audio after decoding: ", audio.shape, audio_len)
 
