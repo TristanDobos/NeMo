@@ -49,8 +49,8 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
 
     Parameters
     ----------
-    codebook_size:
-        Number of binary codes in the codebook.
+    dim:
+        Dimensionality of the latent space.
 
     """
 
@@ -68,7 +68,7 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         self.register_buffer(
             "mask", 2 ** torch.arange(self.dim - 1, -1, -1), persistent=False
         )
-        all_codes = torch.arange(codebook_size)
+        all_codes = torch.arange(self.codebook_size)
         bits = (all_codes[..., None].int() & self.mask) != 0
         codebook = self._bits_to_codes(bits) * self.codebook_value
         self.register_buffer("codebook", codebook, persistent=False)
