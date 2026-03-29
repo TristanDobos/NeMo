@@ -73,23 +73,6 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         codebook = self._bits_to_codes(bits) * self.codebook_value
         self.register_buffer("codebook", codebook, persistent=False)
 
-    def forward(self, lats: "Tensor") -> "Tuple[Tensor, Tensor]":
-        """Forward pass.
-
-        Parameters
-        ----------
-        lats:
-            Input latents of shape (..., dim).
-
-        Returns
-        -------
-            - Output tokens of shape (...);
-            - output codes (i.e. quantized latents) of shape (..., dim).
-
-        """
-        toks = self.lats_to_toks(lats)
-        codes = self.toks_to_codes(toks)
-        return toks, codes
 
     @torch.jit.export
     def lats_to_codes(self, lats: "Tensor") -> "Tensor":
