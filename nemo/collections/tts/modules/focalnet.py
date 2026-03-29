@@ -149,21 +149,14 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         output_types={"indices": NeuralType(('D', 'B', 'T'), Index())},
     )
     def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Encode continuous inputs [B, D, T] to token indices [1, B, T]."""
-        print(f"ENCODE INPUT SHAPE: {inputs.shape}")
-        dequantized, indices = self(inputs=inputs, input_len=input_len)
-        print(f"ENCODE dequantized SHAPE: {dequantized.shape}")
-        print(f"ENCODE indices SHAPE: {indices.shape}")
+        # 1. Rearrange to [B, T, D] so the last dim is the feature dim
+        inputs_btd = rearrange(inputs, "b d t -> b t d")
 
+        # 2. Quantize (Using the logic in your second forward)
+        indices_bt = self.lats_to_toks(inputs_btd)
 
-        print(f"encoding 13131333: dequantized shape: {dequantized.shape}")
-        print(f"encoding some values from dequantized: {return_first_samples(dequantized)}")
-        print(f"encoding 13131333: encode inputs shape: {inputs.shape}")
-        print(f"encoding some values from inputs: {return_first_samples(inputs)}")
-        indices = indices.unsqueeze(0)  # [1, B, T]
-        print(f"encoding 13131333: indices shape: {indices.shape}")
-        print(f"encoding some values from indices: {return_first_samples(indices)}")
-
+        # 3. NeMo expects [C, B, T] where C is number of codebooks (1 in this case)
+        indices = indices_bt.unsqueeze(0) 
         return indices
 
     @typecheck(
@@ -176,30 +169,17 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
         },
     )
     def decode(self, indices: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Decode token indices [1, B, T] to quantized codes [B, D, T]."""
-        if indices.size(0) != 1:
-            raise ValueError(
-                    f"Expected a single codebook, got {indices.size(0)} codebooks for indices with shape {indices.shape}."
-                )
-
         # [1, B, T] -> [B, T]
         indices_bt = indices.squeeze(0)
 
-        # [B, T] -> [B, T, D]
-        dequantized_bt_d = self.toks_to_codes(indices_bt)
+        # [B, T] -> [B, T, D] (toks_to_codes handles the mapping)
+        dequantized_btd = self.toks_to_codes(indices_bt)
 
-        # [B, T, D] -> [B, D, T]
-        dequantized = rearrange(dequantized_bt_d, "B T D -> B D T")
+        # [B, T, D] -> [B, D, T] for the rest of the audio pipeline
+        dequantized = rearrange(dequantized_btd, "b t d -> b d t")
 
         if input_len is not None:
             dequantized = mask_sequence_tensor(dequantized, input_len)
-
-        print(f"decoding 13131333: dequantized shape: {dequantized.shape}")
-        print(f"decoding 13131333: indices shape: {indices.shape}")
-        print(f"decoding 13131333: codebook shape: {self.codebook.shape}")
-        print(f"decoding indices: {return_first_samples(indices)}")
-        print(f"decoding dequantized: {return_first_samples(dequantized)}")
-        
 
         return dequantized
 
@@ -217,8 +197,11 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
             - Output tokens of shape (...);
 
         """
-        toks = self.lats_to_toks(inputs)
-        codes = self.toks_to_codes(toks)
+        inputs_btd = rearrange(inputs, "b d t -> b t d")
+        toks = self.lats_to_toks(inputs_btd)
+        codes_btd = self.toks_to_codes(toks)
+
+        codes = rearrange(codes_btd, "b t d -> b d t")
         return codes, toks
 
     def _bits_to_codes(self, bits: "Tensor") -> "Tensor":
