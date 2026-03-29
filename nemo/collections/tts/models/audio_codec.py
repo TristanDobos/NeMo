@@ -607,6 +607,7 @@ class AudioCodecModel(ModelPT):
         if self.vector_quantizer:
             if self.vector_quantizer_has_commit_loss:
                 print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
+                encoded = rearrange(encoded, "b d t -> b t d")
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
             else:
                 print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
