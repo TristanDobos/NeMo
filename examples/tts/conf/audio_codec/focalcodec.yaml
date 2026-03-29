@@ -69,6 +69,8 @@ model:
   codebook_loss_scale: 0.0
   commit_loss_scale: 0.0
 
+  compressor_output_dim: ${compressor_output_dim}
+
   # Probability of updating the discriminator during each training step
   # For example, update the discriminator 1/2 times (1 update for every 2 batches)
   disc_updates_per_period: 1

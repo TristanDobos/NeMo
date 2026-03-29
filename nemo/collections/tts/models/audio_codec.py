@@ -87,6 +87,8 @@ class AudioCodecModel(ModelPT):
             raise ValueError(
                 f'Number of discriminator updates ({self.disc_updates_per_period}) per period must be less or equal to the configured period ({self.disc_update_period})'
             )
+        
+        self.compressor_output_dim = cfg.get("compressor_output_dim", None)
 
         # Encoder setup
         self.audio_encoder = instantiate(cfg.audio_encoder)
@@ -507,6 +509,10 @@ class AudioCodecModel(ModelPT):
         # Convert a discrete representation to a dequantized vector for each frame
         dequantized = self.dequantize(tokens=tokens, tokens_len=tokens_len)
 
+        if dequantized.shape[1] == self.compressor_output_dim:
+            # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
+            dequantized = dequantized.transpose(1, 2)
+
         decompressed_dequantized = self.decompressor(dequantized)
         
         # Apply decoder to obtain time-domain audio for each frame
@@ -603,6 +609,11 @@ class AudioCodecModel(ModelPT):
         encoded_after_quantization = encoded.shape
 
         print(f"encoded before decompressor: ", encoded.shape, encoded_len)
+
+        if dequantized.shape[1] == self.compressor_output_dim:
+            # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
+            dequantized = dequantized.transpose(1, 2)
+
         encoded = self.decompressor(encoded)
         print(f"encoded after decompressor: ", encoded.shape, encoded_len)
         encoded_after_decompressor_shape = encoded.shape
