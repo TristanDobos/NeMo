@@ -615,6 +615,8 @@ class AudioCodecModel(ModelPT):
                 commit_loss = 0.0
         else:
             commit_loss = 0.0
+
+        dequantized = encoded
         
         encoded_after_quantization = encoded.shape
 
