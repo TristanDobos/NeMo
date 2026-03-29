@@ -40,7 +40,7 @@ from torchmetrics.audio.sdr import (
 )
 from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
 
-from nemo.collections.tts.modules.audio_codec_modules import ResNetSpeakerEncoder
+from nemo.collections.tts.modules.audio_codec_modules import ResNetSpeakerEncoder, return_first_samples
 from nemo.collections.tts.modules.common import GaussianDropout
 from nemo.collections.tts.parts.utils.callbacks import LoggingCallback
 from nemo.collections.tts.parts.utils.helpers import get_batch_size, get_num_workers
@@ -90,6 +90,10 @@ class AudioCodecModel(ModelPT):
 
         # Encoder setup
         self.audio_encoder = instantiate(cfg.audio_encoder)
+        # Compressor
+        self.compressor = instantiate(cfg.compressor)
+        # Decompressor
+        self.decompressor = instantiate(cfg.decompressor)
 
         # Optionally, add gaussian noise to encoder output as an information bottleneck
         encoder_noise_stdev = cfg.get("encoder_noise_stdev", 0.0)
@@ -377,9 +381,28 @@ class AudioCodecModel(ModelPT):
             raise ValueError("Cannot quantize without quantizer")
 
         # vector quantizer is returning [C, B, T], where C is the number of codebooks
-        tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
+        print("HEREEEE")
+        print("to be quantized: ", encoded.shape, encoded_len)
+        print("encoded first values: ", return_first_samples(encoded))
+        compressed_encoded = self.compressor(encoded)
+        # print("compressed_encoded: ", compressed_encoded.shape, encoded_len)
+        # print("compressed_encoded first values: ", return_first_samples(compressed_encoded))
+        print("compressed_encodedq111: ", compressed_encoded)
+        print("encoded_len ", encoded_len)
+
+
+        tokens = self.vector_quantizer.encode(inputs=compressed_encoded, input_len=encoded_len)
+        print("tokens first values: ", return_first_samples(tokens))
+
+        print("tokens after quantization: ", tokens.shape)
+
         # use batch first for the output
         tokens = rearrange(tokens, 'C B T -> B C T')
+
+        print("tokens after quantization rearranged: ", tokens.shape)
+
+        print("rearranged first values: ", return_first_samples(tokens))
+
         return tokens
 
     @typecheck(
@@ -405,9 +428,31 @@ class AudioCodecModel(ModelPT):
             raise ValueError("Cannot dequantize without quantizer")
 
         # vector quantizer is using [C, B, T], where C is the number of codebooks
+
+        print("dequantization!!!")
+        print("tokens to be dequantized: ", tokens.shape, tokens_len)
+        print("tokens first values: ", return_first_samples(tokens))
+
         tokens = rearrange(tokens, 'B C T -> C B T')
+
+        print("rearranged codes to be dequantized: ", tokens.shape, tokens_len)
+
+
         dequantized = self.vector_quantizer.decode(indices=tokens, input_len=tokens_len)
-        return dequantized
+
+        print("dequantized before decompressor: ", dequantized.shape, tokens_len)
+        print("dequantized before decompressor first values: ", return_first_samples(dequantized))
+
+        if dequantized.shape[1] == 12: 
+            dequantized = rearrange(dequantized, "b d t -> b t d")
+
+        decompressed_dequantized = self.decompressor(dequantized)
+
+        print("tokens first values: ", return_first_samples(tokens))
+        print("decompressed_dequantized output: ", decompressed_dequantized.shape)
+        print("decompressed_dequantized first values: ", return_first_samples(decompressed_dequantized))
+
+        return decompressed_dequantized
 
     @typecheck(
         input_types={
@@ -433,7 +478,9 @@ class AudioCodecModel(ModelPT):
         # Apply encoder to obtain a continuous vector for each frame
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
         # Apply quantizer to obtain discrete representation per frame
+        print("11111encoded before quantization: ", encoded.shape, encoded_len)
         tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
+        print("11111tokens after quantization: ", tokens.shape, encoded_len)
         return tokens, encoded_len
 
     @typecheck(
@@ -486,33 +533,34 @@ class AudioCodecModel(ModelPT):
         """
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
 
+        print("1111122222encoded before quantization: ", encoded.shape, encoded_len)
         if self.vector_quantizer:
-            # quantize to discrete tokens
             tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
-            # decode tokens to audio
+            print("22222tokens: ", tokens.shape)
             output_audio, output_audio_len = self.decode(tokens=tokens, tokens_len=encoded_len)
+            print("22222output_audio after quantization: ", output_audio.shape)
+            print("output_audio_len after quantization: ", output_audio_len)
         else:
-            # no quantization, directly decode to audio
             output_audio, output_audio_len = self.decode_audio(inputs=encoded, input_len=encoded_len)
+            print("22222output_audio after quantization: ", output_audio.shape)
+
 
         return output_audio, output_audio_len
 
     def pad_audio(self, audio, audio_len):
-        """Zero pad the end of the audio so that we do not have a partial end frame.
-        The output will be zero-padded to have an integer number of frames of
-        length `self.samples_per_frame`.
-
-        Args:
-            audio: input time-domain signal
-            audio_len: valid length for each example in the batch
-
-        Returns:
-            Padded time-domain signal `padded_audio` and its length `padded_len`.
-        """
-        padded_len = self.samples_per_frame * torch.ceil(audio_len / self.samples_per_frame).int()
+        hop = 320 # WavLM's total stride
+        
+        # We add +1 to the ceil to ensure the 'receptive field' 
+        # of the last WavLM convolution has enough data.
+        target_num_frames = torch.ceil(audio_len / hop).int() + 1
+        padded_len = target_num_frames * hop
+        
         max_len = padded_len.max().item()
-        num_padding = max_len - audio.shape[1]
-        padded_audio = F.pad(audio, (0, num_padding))
+        num_padding = int(max_len - audio.shape[1])
+        
+        # Apply the padding
+        padded_audio = torch.nn.functional.pad(audio, (0, num_padding))
+        
         return padded_audio, padded_len
 
     def _process_batch(self, batch):
@@ -520,25 +568,66 @@ class AudioCodecModel(ModelPT):
         audio = batch.get("audio")
         # [B]
         audio_len = batch.get("audio_lens")
+        print("original audio shape before padding: ", audio.shape, audio_len)
         audio, audio_len = self.pad_audio(audio, audio_len)
+
+        init_audio_shape = audio.shape
+        print(f"initial audio shape: {init_audio_shape}, audio_len: {audio_len}")
 
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
+
+        encoded_before_compressor_shape = encoded.shape
+        print(f"encoded before compressor: ", encoded.shape, encoded_len)
+        encoded = self.compressor(encoded)
+        print(f"encoded after compressor: ", encoded.shape, encoded_len)
+        encoded_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
             encoded = self.encoder_noise(encoded)
 
         if self.vector_quantizer:
             if self.vector_quantizer_has_commit_loss:
+                print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
             else:
+                print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
                 commit_loss = 0.0
         else:
             commit_loss = 0.0
+        
+        encoded_after_quantization = encoded.shape
+
+        print(f"encoded before decompressor: ", encoded.shape, encoded_len)
+        encoded = self.decompressor(encoded)
+        print(f"encoded after decompressor: ", encoded.shape, encoded_len)
+        encoded_after_decompressor_shape = encoded.shape
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
+        print("generated audio: ", audio_gen.shape)
+
+        print("the evolution of all the shapes:")
+        print("init_audio_shape: ", init_audio_shape)
+        print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
+        print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
+        print("encoded_after_quantization: ", encoded_after_quantization)
+        print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
+        print("audio_gen shape: ", audio_gen.shape)
+
+        gen_len = audio_gen.shape[-1] 
+
+        # 3. Trim the original (padded) audio to match the generated audio
+        # This ensures both are exactly 220,800 (or 167,040)
+        audio = audio[..., :gen_len]
+
+        
+
+        assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
+
+
+
 
         return audio, audio_len, audio_gen, commit_loss
 
