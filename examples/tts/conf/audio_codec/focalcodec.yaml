@@ -189,16 +189,25 @@ model:
     _target_: nemo.collections.tts.modules.focalnet.BinarySphericalQuantizer
     dim: ${quantizer_dim}
 
+  # discriminator:
+  #   _target_: nemo.collections.tts.modules.audio_codec_modules.Discriminator
+  #   discriminators:
+  #     # Multi-Period Discriminator (MPD):
+  #     # Analyzes the signal at different periodic intervals to capture pitch/harmonics
+  #     - _target_: nemo.collections.tts.modules.hifigan_modules.MultiPeriodDiscriminator
+
+  #     # Multi-Scale Discriminator (MSD):
+  #     # Analyzes the signal at different resolutions (original, 2x downsampled, 4x downsampled)
+  #     - _target_: nemo.collections.tts.modules.hifigan_modules.MultiScaleDiscriminator
+
   discriminator:
     _target_: nemo.collections.tts.modules.audio_codec_modules.Discriminator
     discriminators:
-      # Multi-Period Discriminator (MPD):
-      # Analyzes the signal at different periodic intervals to capture pitch/harmonics
-      - _target_: nemo.collections.tts.modules.hifigan_modules.MultiPeriodDiscriminator
-
-      # Multi-Scale Discriminator (MSD):
-      # Analyzes the signal at different resolutions (original, 2x downsampled, 4x downsampled)
-      - _target_: nemo.collections.tts.modules.hifigan_modules.MultiScaleDiscriminator
+      - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiPeriodDiscriminator
+      - _target_: nemo.collections.tts.modules.audio_codec_modules.MultiResolutionDiscriminatorSTFT
+        resolutions: [[512, 128, 512], [1024, 256, 1024]]
+        stft_bands:
+          [[0.0, 0.1], [0.1, 0.25], [0.25, 0.5], [0.5, 0.75], [0.75, 1.0]]
 
   generator_loss:
     _target_: nemo.collections.tts.losses.audio_codec_loss.GeneratorSquaredLoss
