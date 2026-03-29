@@ -150,10 +150,11 @@ class BinarySphericalQuantizer(VectorQuantizerBase):
     )
     def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
         # 1. Rearrange to [B, T, D] so the last dim is the feature dim
-        inputs_btd = rearrange(inputs, "b d t -> b t d")
+        print("quantizer encoder inputs: ", inputs.shape, input_len)
+        print("the performs masking on the last dimension, which is of size: ", inputs.shape[-1])
 
         # 2. Quantize (Using the logic in your second forward)
-        indices_bt = self.lats_to_toks(inputs_btd)
+        indices_bt = self.lats_to_toks(inputs)
 
         # 3. NeMo expects [C, B, T] where C is number of codebooks (1 in this case)
         indices = indices_bt.unsqueeze(0) 
