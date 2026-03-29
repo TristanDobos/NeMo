@@ -89,6 +89,7 @@ class AudioCodecModel(ModelPT):
             )
         
         self.compressor_output_dim = cfg.get("compressor_output_dim", None)
+        self.encoder_out_dim = cfg.get("encoder_out_dim", None)
 
         # Encoder setup
         self.audio_encoder = instantiate(cfg.audio_encoder)
