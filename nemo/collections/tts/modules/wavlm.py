@@ -1069,6 +1069,7 @@ class WavLM(nn.Module):
         window_size: "int" = 512,
         lookahead_size: "int" = 3,
         use_flex_attention: "bool" = False,
+        sample_rate: "int" = 22050,
     ) -> "None":
         super().__init__()
         self.hidden_dims = hidden_dims
@@ -1117,7 +1118,7 @@ class WavLM(nn.Module):
             lookahead_size,
             use_flex_attention,
         )
-        self.sample_rate = 16000
+        self.sample_rate = sample_rate
         self.downsample_factor = torch.Size(strides).numel()
         self.chunk_size = self.downsample_factor * (1 + lookahead_size)
 
