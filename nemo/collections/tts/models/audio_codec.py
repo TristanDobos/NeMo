@@ -590,11 +590,15 @@ class AudioCodecModel(ModelPT):
         audio = batch.get("audio")
         # [B]
         audio_len = batch.get("audio_lens")
+        audio_before_pad_shape = audio.shape
         audio, audio_len = self.pad_audio(audio, audio_len)
+        audio_after_pad_shape = audio.shape
 
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
+        audio_after_encoder_shape = encoded.shape
         encoded = self.compressor(encoded)
+        audio_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
             encoded = self.encoder_noise(encoded)
@@ -602,7 +606,9 @@ class AudioCodecModel(ModelPT):
         if self.vector_quantizer:
             if self.vector_quantizer_has_commit_loss:
                 encoded = rearrange(encoded, "b d t -> b t d")
+                audio_after_rearrange_shape = encoded.shape
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
+                audio_after_quantization_shape = encoded.shape
             else:
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
                 commit_loss = 0.0
@@ -612,12 +618,26 @@ class AudioCodecModel(ModelPT):
         if encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
             encoded = encoded.transpose(1, 2)
+        audio_after_transpose_shape = encoded.shape
         encoded = self.decompressor(encoded)
+        audio_after_decompressor_shape = encoded.shape
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
+        audio_after_decoder_shape = audio_gen.shape
         if (self.debug):
             print("audio shape: ", audio.shape)
+            print("audio_len: ", audio_len)
+            print("all the shapes:")
+            print("audio_before_pad_shape: ", audio_before_pad_shape)
+            print("audio_after_pad_shape: ", audio_after_pad_shape)
+            print("audio_after_encoder_shape: ", audio_after_encoder_shape)
+            print("audio_after_compressor_shape: ", audio_after_compressor_shape)
+            print("audio_after_rearrange_shape: ", audio_after_rearrange_shape)
+            print("audio_after_quantization_shape: ", audio_after_quantization_shape)
+            print("audio_after_transpose_shape: ", audio_after_transpose_shape)
+            print("audio_after_decompressor_shape: ", audio_after_decompressor_shape)
+            print("audio_after_decoder_shape: ", audio_after_decoder_shape)
             print("audio_gen shape: ", audio_gen.shape)
 
         assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
