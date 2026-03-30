@@ -88,6 +88,7 @@ class AudioCodecModel(ModelPT):
                 f'Number of discriminator updates ({self.disc_updates_per_period}) per period must be less or equal to the configured period ({self.disc_update_period})'
             )
         
+        self.use_compressor = cfg.get("use_compressor", False)
         self.compressor_output_dim = cfg.get("compressor_output_dim", None)
         self.encoder_out_dim = cfg.get("encoder_out_dim", None)
 
@@ -644,7 +645,6 @@ class AudioCodecModel(ModelPT):
             print("audio_after_decoder_shape: ", audio_after_decoder_shape)
             print("audio_gen shape: ", audio_gen.shape)
 
-        audio_gen, audio_gen_len = self.forward(audio=audio, audio_len=audio_len)
         target_len = audio_gen.shape[-1]
         audio = audio[..., :target_len]
         audio_len = torch.clamp(audio_len, max=target_len)

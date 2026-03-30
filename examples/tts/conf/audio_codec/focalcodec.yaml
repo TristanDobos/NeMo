@@ -72,6 +72,8 @@ model:
   compressor_output_dim: ${compressor_output_dim}
   encoder_out_dim: ${encoder_out_dim}
 
+  use_compressor: true
+
   # Probability of updating the discriminator during each training step
   # For example, update the discriminator 1/2 times (1 update for every 2 batches)
   disc_updates_per_period: 1
