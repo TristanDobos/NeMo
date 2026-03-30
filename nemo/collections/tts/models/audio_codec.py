@@ -636,7 +636,8 @@ class AudioCodecModel(ModelPT):
 
         audio_after_decompressor_shape = encoded.shape
 
-        assert audio_after_encoder_shape == audio_after_decompressor_shape, f"Shape after encoder {audio_after_encoder_shape} and shape after decompressor {audio_after_decompressor_shape} must be the same for direct decoding without quantization. Please check the compressor and decompressor output dimensions."
+        if self.use_compressor:
+            assert audio_after_encoder_shape == audio_after_decompressor_shape, f"Shape after encoder {audio_after_encoder_shape} and shape after decompressor {audio_after_decompressor_shape} must be the same for direct decoding without quantization. Please check the compressor and decompressor output dimensions."
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
