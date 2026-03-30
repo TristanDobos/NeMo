@@ -593,7 +593,8 @@ class AudioCodecModel(ModelPT):
         audio_len = batch.get("audio_lens")
         audio_before_pad_shape = audio.shape
         audio, audio_len = self.pad_audio(audio, audio_len)
-        print("audio after padding: ", audio.shape, audio_len)
+        if self.debug:
+            print("audio after padding: ", audio.shape, audio_len)
         audio_after_pad_shape = audio.shape
 
         # [B, D, T_encoded]
