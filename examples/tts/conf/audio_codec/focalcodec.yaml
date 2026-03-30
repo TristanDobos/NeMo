@@ -172,7 +172,7 @@ model:
     dim: ${encoder_out_dim}
 
   audio_decoder:
-    _target_: nemo.collections.tts.modules.vocos.Vocos
+    _target_: nemo.collections.tts.modules.wavenext.WaveNeXt
     input_dim: ${decoder_input_dim}
     dim: ${decoder_input_dim}
 
