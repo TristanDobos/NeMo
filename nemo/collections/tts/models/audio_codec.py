@@ -101,6 +101,8 @@ class AudioCodecModel(ModelPT):
         # Decompressor
         self.decompressor = instantiate(cfg.decompressor)
 
+        self.use_compressor = cfg.get("use_compressor", False)
+
         # Optionally, add gaussian noise to encoder output as an information bottleneck
         encoder_noise_stdev = cfg.get("encoder_noise_stdev", 0.0)
         if encoder_noise_stdev:
@@ -401,14 +403,16 @@ class AudioCodecModel(ModelPT):
         print("HEREEEE")
         print("to be quantized: ", encoded.shape, encoded_len)
         print("encoded first values: ", return_first_samples(encoded))
-        compressed_encoded = self.compressor(encoded)
+
+        if self.use_compressor:
+            encoded = self.compressor(encoded)
         # print("compressed_encoded: ", compressed_encoded.shape, encoded_len)
         # print("compressed_encoded first values: ", return_first_samples(compressed_encoded))
-        print("compressor output dim: ", compressed_encoded.shape)
+        print("compressor output dim: ", encoded.shape)
         print("encoded_len ", encoded_len)
 
 
-        tokens = self.vector_quantizer.encode(inputs=compressed_encoded, input_len=encoded_len)
+        tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
         print("tokens first values: ", return_first_samples(tokens))
 
         print("tokens after quantization: ", tokens.shape)
@@ -456,14 +460,15 @@ class AudioCodecModel(ModelPT):
         print("dequantized after decoding: ", dequantized.shape, tokens_len)
 
         # FocalNet (Decompressor) needs [B, T, C]
-        if dequantized.shape[1] == self.compressor_output_dim:
+        if self.use_compressor and dequantized.shape[1] == self.compressor_output_dim:
             dequantized = rearrange(dequantized, "b d t -> b t d")
         
         # Shape is now [B, 522, 16]
-        decompressed = self.decompressor(dequantized) 
+        if self.use_compressor:
+            dequantized = self.decompressor(dequantized) 
         # Shape is now [B, 522, 1024]
         
-        return decompressed
+        return dequantized
 
     @typecheck(
         input_types={
@@ -517,17 +522,19 @@ class AudioCodecModel(ModelPT):
         """
         # 1. This now returns the 1024-dim tensor (because decompressor is inside it)
         print("24324233422 tokens before dequantization in decode: ", tokens.shape, tokens_len)
-        decompressed_dequantized = self.dequantize(tokens=tokens, tokens_len=tokens_len)
-        print("decompressed_dequantized in decode: ", decompressed_dequantized.shape, tokens_len)
+
+        dequantized = self.dequantize(tokens=tokens, tokens_len=tokens_len)
+
+        print("dequantized in decode: ", dequantized.shape, tokens_len)
 
         # 2. Skip the second decompressor call! 
         # Just ensure the shape is right for Vocos (usually [B, C, T])
-        if decompressed_dequantized.shape[-1] == self.encoder_out_dim:
-            decompressed_dequantized = decompressed_dequantized.transpose(1, 2)
+        if dequantized.shape[-1] == self.encoder_out_dim:
+            dequantized = dequantized.transpose(1, 2)
             
         # 3. Apply Vocos decoder
-        print("decompressed_dequantized before Vocos decoder: ", decompressed_dequantized.shape)
-        audio, audio_len = self.decode_audio(inputs=decompressed_dequantized, input_len=tokens_len)
+        print("dequantized before Vocos decoder: ", dequantized.shape)
+        audio, audio_len = self.decode_audio(inputs=dequantized, input_len=tokens_len)
         print("audio after decoding: ", audio.shape, audio_len)
 
         return audio, audio_len
@@ -600,7 +607,8 @@ class AudioCodecModel(ModelPT):
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
         audio_after_encoder_shape = encoded.shape
-        encoded = self.compressor(encoded)
+        if self.use_compressor:
+            encoded = self.compressor(encoded)
         audio_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
@@ -619,11 +627,13 @@ class AudioCodecModel(ModelPT):
         else:
             commit_loss = 0.0
         
-        if encoded.shape[1] == self.compressor_output_dim:
+        if self.use_compressor and encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
             encoded = encoded.transpose(1, 2)
         audio_after_transpose_shape = encoded.shape
-        encoded = self.decompressor(encoded)
+        if self.use_compressor:
+            encoded = self.decompressor(encoded)
+            
         audio_after_decompressor_shape = encoded.shape
 
         assert audio_after_encoder_shape == audio_after_decompressor_shape, f"Shape after encoder {audio_after_encoder_shape} and shape after decompressor {audio_after_decompressor_shape} must be the same for direct decoding without quantization. Please check the compressor and decompressor output dimensions."

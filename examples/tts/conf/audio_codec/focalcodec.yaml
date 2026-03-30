@@ -72,7 +72,7 @@ model:
   compressor_output_dim: ${compressor_output_dim}
   encoder_out_dim: ${encoder_out_dim}
 
-  use_compressor: true
+  use_compressor: false
 
   # Probability of updating the discriminator during each training step
   # For example, update the discriminator 1/2 times (1 update for every 2 batches)
@@ -96,6 +96,7 @@ model:
   feature_loss_type: absolute
 
   debug: false
+  compressor_on: true
 
   train_ds:
     dataset:
