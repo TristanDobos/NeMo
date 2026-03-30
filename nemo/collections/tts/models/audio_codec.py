@@ -592,6 +592,7 @@ class AudioCodecModel(ModelPT):
         audio_len = batch.get("audio_lens")
         audio_before_pad_shape = audio.shape
         audio, audio_len = self.pad_audio(audio, audio_len)
+        print("audio after padding: ", audio.shape, audio_len)
         audio_after_pad_shape = audio.shape
 
         # [B, D, T_encoded]
@@ -623,6 +624,8 @@ class AudioCodecModel(ModelPT):
         encoded = self.decompressor(encoded)
         audio_after_decompressor_shape = encoded.shape
 
+        assert audio_after_encoder_shape == audio_after_decompressor_shape, f"Shape after encoder {audio_after_encoder_shape} and shape after decompressor {audio_after_decompressor_shape} must be the same for direct decoding without quantization. Please check the compressor and decompressor output dimensions."
+
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
         audio_after_decoder_shape = audio_gen.shape
@@ -640,6 +643,11 @@ class AudioCodecModel(ModelPT):
             print("audio_after_decompressor_shape: ", audio_after_decompressor_shape)
             print("audio_after_decoder_shape: ", audio_after_decoder_shape)
             print("audio_gen shape: ", audio_gen.shape)
+
+        audio_gen, audio_gen_len = self.forward(audio=audio, audio_len=audio_len)
+        target_len = audio_gen.shape[-1]
+        audio = audio[..., :target_len]
+        audio_len = torch.clamp(audio_len, max=target_len)
 
         assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
 
