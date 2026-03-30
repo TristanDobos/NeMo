@@ -460,8 +460,8 @@ class AudioCodecModel(ModelPT):
         print("dequantized after decoding: ", dequantized.shape, tokens_len)
 
         # FocalNet (Decompressor) needs [B, T, C]
-        if self.use_compressor and dequantized.shape[1] == self.compressor_output_dim:
-            dequantized = rearrange(dequantized, "b d t -> b t d")
+        # if self.use_compressor and dequantized.shape[1] == self.compressor_output_dim:
+        dequantized = rearrange(dequantized, "b d t -> b t d")
         
         # Shape is now [B, 522, 16]
         if self.use_compressor:
@@ -627,13 +627,13 @@ class AudioCodecModel(ModelPT):
         else:
             commit_loss = 0.0
         
-        if self.use_compressor and encoded.shape[1] == self.compressor_output_dim:
+        # if self.use_compressor and encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
-            encoded = encoded.transpose(1, 2)
+        encoded = encoded.transpose(1, 2)
         audio_after_transpose_shape = encoded.shape
         if self.use_compressor:
             encoded = self.decompressor(encoded)
-            
+
         audio_after_decompressor_shape = encoded.shape
 
         assert audio_after_encoder_shape == audio_after_decompressor_shape, f"Shape after encoder {audio_after_encoder_shape} and shape after decompressor {audio_after_decompressor_shape} must be the same for direct decoding without quantization. Please check the compressor and decompressor output dimensions."
