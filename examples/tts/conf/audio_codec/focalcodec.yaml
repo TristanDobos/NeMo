@@ -93,6 +93,8 @@ model:
   stft_loss_log_guard: 1.0
   feature_loss_type: absolute
 
+  debug: true
+
   train_ds:
     dataset:
       _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset

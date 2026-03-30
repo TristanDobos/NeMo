@@ -91,6 +91,8 @@ class AudioCodecModel(ModelPT):
         self.compressor_output_dim = cfg.get("compressor_output_dim", None)
         self.encoder_out_dim = cfg.get("encoder_out_dim", None)
 
+        self.debug = cfg.get("debug", False)
+
         # Encoder setup
         self.audio_encoder = instantiate(cfg.audio_encoder)
         # Compressor
@@ -566,19 +568,21 @@ class AudioCodecModel(ModelPT):
         return output_audio, output_audio_len
 
     def pad_audio(self, audio, audio_len):
-        hop = 320 # WavLM's total stride
-        
-        # We add +1 to the ceil to ensure the 'receptive field' 
-        # of the last WavLM convolution has enough data.
-        target_num_frames = torch.ceil(audio_len / hop).int() + 1
-        padded_len = target_num_frames * hop
-        
+        """Zero pad the end of the audio so that we do not have a partial end frame.
+        The output will be zero-padded to have an integer number of frames of
+        length `self.samples_per_frame`.
+
+        Args:
+            audio: input time-domain signal
+            audio_len: valid length for each example in the batch
+
+        Returns:
+            Padded time-domain signal `padded_audio` and its length `padded_len`.
+        """
+        padded_len = self.samples_per_frame * torch.ceil(audio_len / self.samples_per_frame).int()
         max_len = padded_len.max().item()
-        num_padding = int(max_len - audio.shape[1])
-        
-        # Apply the padding
-        padded_audio = torch.nn.functional.pad(audio, (0, num_padding))
-        
+        num_padding = max_len - audio.shape[1]
+        padded_audio = F.pad(audio, (0, num_padding))
         return padded_audio, padded_len
 
     def _process_batch(self, batch):
@@ -586,74 +590,37 @@ class AudioCodecModel(ModelPT):
         audio = batch.get("audio")
         # [B]
         audio_len = batch.get("audio_lens")
-        # print("original audio shape before padding: ", audio.shape, audio_len)
         audio, audio_len = self.pad_audio(audio, audio_len)
-
-        init_audio_shape = audio.shape
-        # print(f"initial audio shape: {init_audio_shape}, audio_len: {audio_len}")
 
         # [B, D, T_encoded]
         encoded, encoded_len = self.audio_encoder(audio=audio, audio_len=audio_len)
-
-        encoded_before_compressor_shape = encoded.shape
-        # print(f"encoded before compressor: ", encoded.shape, encoded_len)
         encoded = self.compressor(encoded)
-        # print(f"encoded after compressor: ", encoded.shape, encoded_len)
-        encoded_after_compressor_shape = encoded.shape
 
         if self.encoder_noise is not None:
             encoded = self.encoder_noise(encoded)
 
         if self.vector_quantizer:
             if self.vector_quantizer_has_commit_loss:
-                # print(f"454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded = rearrange(encoded, "b d t -> b t d")
                 encoded, _, commit_loss = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
             else:
-                # print(f"11454564adfad encoded before quantization: ", encoded.shape, encoded_len)
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
                 commit_loss = 0.0
         else:
             commit_loss = 0.0
-
-        encoded_after_quantization = encoded.shape
-
-        # print(f"encoded before decompressor: ", encoded.shape, encoded_len)
-
+        
         if encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
             encoded = encoded.transpose(1, 2)
-        # print(f"encoded before decompressor2: ", encoded.shape, encoded_len)
-        
-
         encoded = self.decompressor(encoded)
-        # print(f"encoded after decompressor: ", encoded.shape, encoded_len)
-        encoded_after_decompressor_shape = encoded.shape
 
         # [B, T]
         audio_gen, _ = self.audio_decoder(inputs=encoded, input_len=encoded_len)
-        # print("generated audio: ", audio_gen.shape)
-
-        # print("the evolution of all the shapes:")
-        # print("init_audio_shape: ", init_audio_shape)
-        # print("encoded_before_compressor_shape: ", encoded_before_compressor_shape)
-        # print("encoded_after_compressor_shape: ", encoded_after_compressor_shape)
-        # print("encoded_after_quantization: ", encoded_after_quantization)
-        # print("encoded_after_decompressor_shape: ", encoded_after_decompressor_shape)   
-        # print("audio_gen shape: ", audio_gen.shape)
-
-        gen_len = audio_gen.shape[-1] 
-
-        # 3. Trim the original (padded) audio to match the generated audio
-        # This ensures both are exactly 220,800 (or 167,040)
-        audio = audio[..., :gen_len]
-
-        
+        if (self.debug):
+            print("audio shape: ", audio.shape)
+            print("audio_gen shape: ", audio_gen.shape)
 
         assert audio.shape == audio_gen.shape, f"Audio and generated audio must have the same shape, but got {audio.shape} and {audio_gen.shape}"
-
-
-
 
         return audio, audio_len, audio_gen, commit_loss
 
