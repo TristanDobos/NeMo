@@ -35,7 +35,7 @@ log_ds_meta:
 
 # Modify these values based on your sample rate
 sample_rate: 22050
-samples_per_frame: 1764
+samples_per_frame: 1920
 train_n_samples: 24696 # ~1.11 seconds
 # The product of the down_sample_rates and up_sample_rates should match the samples_per_frame.
 # For example 8 * 8 * 4 * 2 * 2 = 1024.
