@@ -629,8 +629,11 @@ class AudioCodecModel(ModelPT):
         
         # if self.use_compressor and encoded.shape[1] == self.compressor_output_dim:
             # Swaps dim 1 (16) and dim 2 (522) -> Result: [1, 522, 16]
-        encoded = encoded.transpose(1, 2)
+        if self.use_compressor:
+            encoded = encoded.transpose(1, 2)
+            
         audio_after_transpose_shape = encoded.shape
+
         if self.use_compressor:
             encoded = self.decompressor(encoded)
 
