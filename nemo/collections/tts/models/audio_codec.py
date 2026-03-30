@@ -611,6 +611,7 @@ class AudioCodecModel(ModelPT):
                 audio_after_quantization_shape = encoded.shape
             else:
                 encoded, _ = self.vector_quantizer(inputs=encoded, input_len=encoded_len)
+                audio_after_quantization_shape = encoded.shape
                 commit_loss = 0.0
         else:
             commit_loss = 0.0
@@ -633,7 +634,7 @@ class AudioCodecModel(ModelPT):
             print("audio_after_pad_shape: ", audio_after_pad_shape)
             print("audio_after_encoder_shape: ", audio_after_encoder_shape)
             print("audio_after_compressor_shape: ", audio_after_compressor_shape)
-            print("audio_after_rearrange_shape: ", audio_after_rearrange_shape)
+            # print("audio_after_rearrange_shape: ", audio_after_rearrange_shape)
             print("audio_after_quantization_shape: ", audio_after_quantization_shape)
             print("audio_after_transpose_shape: ", audio_after_transpose_shape)
             print("audio_after_decompressor_shape: ", audio_after_decompressor_shape)
