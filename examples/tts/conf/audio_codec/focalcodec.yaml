@@ -95,7 +95,7 @@ model:
   stft_loss_log_guard: 1.0
   feature_loss_type: absolute
 
-  debug: true
+  debug: false
 
   train_ds:
     dataset:
