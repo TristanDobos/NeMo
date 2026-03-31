@@ -21,10 +21,23 @@
 # https://github.com/microsoft/FocalNet/blob/v1.0.1/classification/focalnet.py
 
 from typing import List, Optional, Sequence, Tuple, Union
-
+import math
+import torch
+from typing import Tuple
+from einops import rearrange
 import torch
 from torch import Size, Tensor, nn
-
+from nemo.core.neural_types.neural_type import NeuralType
+from typing import List, Optional, Sequence, Tuple, Union
+from nemo.collections.common.parts.utils import mask_sequence_tensor
+from nemo.collections.tts.modules.audio_codec_modules import VectorQuantizerBase, return_first_samples
+import torch
+from nemo.core.classes.common import typecheck
+from nemo.core.neural_types.elements import (
+    EncodedRepresentation,
+    Index,
+    LengthsType,
+)
 
 __all__ = ["FocalDecoder", "FocalEncoder", "BinarySphericalQuantizer"]
 
@@ -1189,7 +1202,7 @@ class FocalEncoder(nn.Module):
             new_left_contexts.append(new_left_contexts_i)
         output = self.dropout(output)
         output = self.out_proj(output)
-        return output, new_left_contexts
+        return output
 
 
 class FocalDecoder(nn.Module):
@@ -1363,7 +1376,7 @@ class FocalDecoder(nn.Module):
         if self.causal and self.lookahead_size > 0:
             output = self.refiner(output)
 
-        return output, new_left_contexts
+        return output
 
 
 def test_model() -> "None":
@@ -1551,20 +1564,20 @@ def test_onnx() -> "None":
     print("ONNX test passed")
 
 
-class BinarySphericalQuantizer(nn.Module):
+class BinarySphericalQuantizer(VectorQuantizerBase):
     """Binary spherical quantizer that maps inputs to binary codes on the unit hypersphere.
 
     Parameters
     ----------
-    codebook_size:
-        Number of binary codes in the codebook.
+    dim:
+        Dimensionality of the latent space.
 
     """
 
-    def __init__(self, codebook_size: "int" = 4096) -> "None":
+    def __init__(self, dim: "int" = 12) -> "None":
         super().__init__()
-        self.codebook_size = codebook_size
-        self.dim = int(math.log2(codebook_size))
+        self.codebook_size = 2 ** dim
+        self.dim = dim
 
         # Buffers
         self.register_buffer(
@@ -1575,28 +1588,30 @@ class BinarySphericalQuantizer(nn.Module):
         self.register_buffer(
             "mask", 2 ** torch.arange(self.dim - 1, -1, -1), persistent=False
         )
-        all_codes = torch.arange(codebook_size)
+        all_codes = torch.arange(self.codebook_size)
         bits = (all_codes[..., None].int() & self.mask) != 0
         codebook = self._bits_to_codes(bits) * self.codebook_value
         self.register_buffer("codebook", codebook, persistent=False)
 
-    def forward(self, lats: "Tensor") -> "Tuple[Tensor, Tensor]":
+    def forward(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> "Tuple[Tensor, Tensor]":
         """Forward pass.
 
         Parameters
         ----------
-        lats:
-            Input latents of shape (..., dim).
+        inputs:
+            Input tensor of shape (..., dim).
 
         Returns
         -------
-            - Output tokens of shape (...);
             - output codes (i.e. quantized latents) of shape (..., dim).
+            - Output tokens of shape (...);
 
         """
-        toks = self.lats_to_toks(lats)
-        codes = self.toks_to_codes(toks)
-        return toks, codes
+        toks = self.lats_to_toks(inputs)
+        codes_btd = self.toks_to_codes(toks)
+
+        codes = rearrange(codes_btd, "b t d -> b d t")
+        return codes, toks
 
     @torch.jit.export
     def lats_to_codes(self, lats: "Tensor") -> "Tensor":
@@ -1663,6 +1678,42 @@ class BinarySphericalQuantizer(nn.Module):
         # ONNX compilable
         bits = ((toks[..., None] // self.mask) % 2).to(self.codebook.dtype)
         return self._bits_to_codes(bits) * self.codebook_value
+    
+
+    @typecheck(
+        input_types={
+            "inputs": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={"indices": NeuralType(('D', 'B', 'T'), Index())},
+    )
+    def encode(self, inputs: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        indices_bt = self.lats_to_toks(inputs)
+        indices = indices_bt.unsqueeze(0) 
+        return indices
+
+    @typecheck(
+        input_types={
+            "indices": NeuralType(('D', 'B', 'T'), Index()),
+            "input_len": NeuralType(tuple('B'), LengthsType(), optional=True),
+        },
+        output_types={
+            "dequantized": NeuralType(('B', 'D', 'T'), EncodedRepresentation()),
+        },
+    )
+    def decode(self, indices: torch.Tensor, input_len: Optional[torch.Tensor] = None) -> torch.Tensor:
+        # [1, B, T] -> [B, T]
+        indices_bt = indices.squeeze(0)
+        # [B, T] -> [B, T, D] 
+        dequantized_btd = self.toks_to_codes(indices_bt)
+        # [B, T, D] -> [B, D, T] for the rest of the audio pipeline
+        dequantized = rearrange(dequantized_btd, "b t d -> b d t")
+
+        # if input_len is not None:
+        #     dequantized = mask_sequence_tensor(dequantized, input_len)
+
+        return dequantized
+
 
     def _bits_to_codes(self, bits: "Tensor") -> "Tensor":
         return bits * 2 - 1

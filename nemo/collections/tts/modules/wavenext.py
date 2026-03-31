@@ -335,7 +335,8 @@ class WaveNeXt(nn.Module):
 
     def forward(
         self,
-        input: "Tensor",
+        inputs: "Tensor",
+        input_len: "Optional[Tensor]" = None,
         left_contexts: "Optional[List[Optional[Tensor]]]" = None,
     ) -> "Tuple[Tensor, List[Optional[Tensor]]]":
         """Forward pass.
@@ -355,9 +356,17 @@ class WaveNeXt(nn.Module):
             - updated left contexts for each backbone layer.
 
         """
-        output, left_contexts = self.backbone(input, left_contexts)
+        output, _ = self.backbone(inputs, None)
         output = self.head(output)
-        return output, left_contexts
+        batch_size = output.size(0)
+        seq_len = output.size(1)
+        audio_len = torch.full(
+            (batch_size,),
+            seq_len,
+            device=output.device,
+            dtype=torch.long,
+        )
+        return output, audio_len
 
 
 def test_model() -> "None":

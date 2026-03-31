@@ -32,6 +32,17 @@ from torch import Tensor, nn
 __all__ = ["WavLM"]
 
 
+def return_first_samples(output):
+    if output.dim() == 4:
+        return output[0, 0, 0, :5]
+    elif output.dim() == 3:
+        return output[0, 0, :5]
+    elif output.dim() == 2:
+        return output[0, :5]
+    else:
+        return output
+
+
 try:
     from torch.nn.attention.flex_attention import flex_attention
 
@@ -1058,6 +1069,7 @@ class WavLM(nn.Module):
         window_size: "int" = 512,
         lookahead_size: "int" = 3,
         use_flex_attention: "bool" = False,
+        sample_rate: "int" = 22050,
     ) -> "None":
         super().__init__()
         self.hidden_dims = hidden_dims
@@ -1106,13 +1118,15 @@ class WavLM(nn.Module):
             lookahead_size,
             use_flex_attention,
         )
-        self.sample_rate = 16000
+        self.sample_rate = sample_rate
         self.downsample_factor = torch.Size(strides).numel()
         self.chunk_size = self.downsample_factor * (1 + lookahead_size)
 
     def forward(
         self,
-        input: "Tensor",
+        audio: "Tensor", 
+        audio_len: "Optional[Tensor]" = None,
+        left_context: "Optional[Tensor]" = None,
         curr_pos: "Optional[Tensor]" = None,
         left_contexts: "Optional[List[Optional[Tensor]]]" = None,
         kv_caches: "Optional[List[Optional[Tensor]]]" = None,
@@ -1145,6 +1159,7 @@ class WavLM(nn.Module):
             - updated key-value caches for each encoder layer.
 
         """
+        input = audio
         # [B, T, 1]
         input = input[..., None]
         encoder_left_context = None if left_contexts is None else left_contexts[-1]
@@ -1152,7 +1167,7 @@ class WavLM(nn.Module):
         output = self.norm(output)
         output = self.feature_proj(output)
         output = self.dropout(output)
-        output, curr_pos, left_context, kv_caches = self.encoder(
+        x, curr_pos, left_context, kv_caches = self.encoder(
             output,
             curr_pos,
             encoder_left_context,
@@ -1160,7 +1175,15 @@ class WavLM(nn.Module):
             length,
         )
         left_contexts.append(left_context)
-        return output, curr_pos, left_contexts, kv_caches
+
+        encoded_len = torch.full(
+            (x.size(0),),
+            x.size(1),
+            device=x.device,
+            dtype=torch.long,
+        )
+
+        return x, encoded_len
 
 
 def test_model() -> "None":
