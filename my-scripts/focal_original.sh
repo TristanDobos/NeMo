@@ -1,0 +1,74 @@
+#!/bin/bash
+#$ -o /mnt/matylda6/xdobos00/runs/logs/focalcodec-$JOB_NAME.$JOB_ID.out            # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/focalcodec-$JOB_NAME.$JOB_ID.err            # standard error log file
+
+
+ulimit -f unlimited -t unlimited -v unlimited -s unlimited -n $(ulimit -Hn)
+
+init_conda() {
+ __conda_setup="$('/mnt/matylda6/xdobos00/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+ if [ $? -eq 0 ]; then
+     eval "$__conda_setup"
+ else
+     if [ -f "/mnt/matylda6/xdobos00/miniconda/etc/profile.d/conda.sh" ]; then
+         . "/mnt/matylda6/xdobos00/miniconda/etc/profile.d/conda.sh"
+     else
+         export PATH="/mnt/matylda6/xdobos00/miniconda/bin:$PATH"
+     fi
+ fi
+ unset __conda_setup
+}
+
+# . /mnt/matylda6/xdobos00/nemo_final/bin/activate
+conda activate /mnt/matylda6/xdobos00/focal-pv310
+
+export NEMO_DISABLE_ONE_LOGGER=1
+export WANDB_MODE=offline
+
+
+
+# Function to display help
+show_help() {
+  echo "Usage: $0 [--config-path <path>] [--config-name <name>] [--help]"
+  echo
+  echo "Runs the audio codec Python script with optional parameters."
+  echo
+  echo "Options:"
+  echo "  --config-path <path>   Path to the config directory (default: $CONFIG_PATH)"
+  echo "  --config-name <name>   Name of the config file (default: $CONFIG_NAME)"
+  echo "  --help                 Show this help message and exit"
+  echo
+  echo "Example:"
+  echo "  $0 --config-path conf/custom --config-name audio_codec_low_frame_rate_22050_focalcodec.yaml"
+  exit 0
+}
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --config-path)
+      CONFIG_PATH="$2"
+      shift 2
+      ;;
+    --config-name)
+      CONFIG_NAME="$2"
+      shift 2
+      ;;
+    --help)
+      show_help
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help to see available options."
+      exit 1
+      ;;
+  esac
+done
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+# Run the Python command
+echo "Running: python /mnt/matylda6/xdobos00/focal-original/focalcodec/focalcodec/try1.py"
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 1)
+python /mnt/matylda6/xdobos00/focal-original/focalcodec/focalcodec/try1.py
+
