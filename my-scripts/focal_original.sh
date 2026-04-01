@@ -19,8 +19,7 @@ init_conda() {
  unset __conda_setup
 }
 
-# . /mnt/matylda6/xdobos00/nemo_final/bin/activate
-init_conda
+. /mnt/matylda6/xdobos00/nemo_final/bin/activate
 conda activate /mnt/matylda6/xdobos00/focal-pv310
 
 export NEMO_DISABLE_ONE_LOGGER=1
