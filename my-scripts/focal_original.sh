@@ -7,7 +7,7 @@ source /mnt/matylda6/xdobos00/miniconda/etc/profile.d/conda.sh
 
 # 2. Activate your target environment
 # (Remove the . /.../bin/activate line, it conflicts with conda)
-conda activate /mnt/matylda6/xdobos00/focal-pv310
+conda activate focal-pv310
 
 # 3. Fix the Allocation Warning
 export PYTORCH_ALLOC_CONF=expandable_segments:True
