@@ -25,6 +25,9 @@ export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
 
 
+qlogin -l gpu=2,ram_free=20G,mem_free=20G,matylda6=1,gpu_ram=20G -q "all.q@*gpu"
+
+
 
 # Default values
 CONFIG_PATH="conf/audio_codec"
@@ -72,6 +75,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 4)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh "$ALLOWED_GPUS")
+echo "Using GPU: $CUDA_VISIBLE_DEVICES because it is the only one available among the allowed GPUs: $ALLOWED_GPUS"
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 
