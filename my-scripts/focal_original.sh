@@ -15,7 +15,7 @@ export NEMO_DISABLE_ONE_LOGGER=1
 export WANDB_MODE=offline
 
 # 4. GPU Selection
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 1)
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh "$ALLOWED_GPUS")
 
 # 5. Run Python
 echo "Running: python /mnt/matylda6/xdobos00/focal-original/focalcodec/focalcodec/try1.py"
