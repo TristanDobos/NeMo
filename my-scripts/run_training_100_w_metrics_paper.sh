@@ -1,6 +1,6 @@
 #!/bin/bash
-#$ -o /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-5.out            # standard output log file
-#$ -e /mnt/matylda6/xdobos00/runs/logs/202501051510-newest-5.err            # standard error log file
+#$ -o /mnt/matylda6/xdobos00/runs/logs/nanocodec-$JOB_NAME.$JOB_ID.out              # standard output log file
+#$ -e /mnt/matylda6/xdobos00/runs/logs/nanocodec-$JOB_NAME.$JOB_ID.err              # standard error log file
 
 
 ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
@@ -26,6 +26,12 @@ export WANDB_MODE=offline
 
 ulimit -f unlimited -t unlimited -v unlimited -u unlimited -i unlimited -n unlimited -l unlimited -p unlimited -s unlimited -n 1048576
 
+
+if [ -z "$ALLOWED_GPUS" ]; then
+    echo "Error: ALLOWED_GPUS environment variable is not set."
+    exit 1
+fi
+export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh "$ALLOWED_GPUS")
 
 # Default values
 CONFIG_PATH="conf/audio_codec"
@@ -71,7 +77,6 @@ done
 
 # Run the Python command
 echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-export CUDA_VISIBLE_DEVICES=$(~/scripts/free-gpus.sh 3)
 python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 # python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 # python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
