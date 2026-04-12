@@ -75,9 +75,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+#make sure all the env variables are set correctly
+if [ -z "$MAX_EPOCHS" ]; then
+    echo "Error: MAX_EPOCHS environment variable is not set."
+    exit 1
+fi
+if [ -z "$EXPERIMENT_NAME" ]; then
+    echo "Error: EXPERIMENT_NAME environment variable is not set."
+    exit 1
+fi
+
 # Run the Python command
-echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME"
-python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
+echo "Running: python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path $CONFIG_PATH --config-name $CONFIG_NAME max_epochs=$MAX_EPOCHS name=$EXPERIMENT_NAME"
+python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" max_epochs=$MAX_EPOCHS name=$EXPERIMENT_NAME
 # python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 # python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
 # python /mnt/matylda6/xdobos00/NeMo/examples/tts/audio_codec.py --config-path "$CONFIG_PATH" --config-name "$CONFIG_NAME" 
