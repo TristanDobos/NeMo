@@ -23,7 +23,7 @@ log_ds_meta:
   audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
 
-sample_rate: 22050
+sample_rate: 16000
 samples_per_frame: 1764
 train_n_samples: 24576
 up_sample_rates: [7, 7, 6, 3, 2]
@@ -40,7 +40,7 @@ model:
   scl_loss_scale: 0.1
   max_epochs: ${max_epochs}
   # steps_per_epoch: 1000
-  sample_rate: 22050
+  sample_rate: ${sample_rate}
   samples_per_frame: ${samples_per_frame}
   mel_loss_l1_scale: 10.0
   mel_loss_l2_scale: 0.0
