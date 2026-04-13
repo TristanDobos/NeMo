@@ -12,9 +12,9 @@ train_ds_meta:
   audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
 val_ds_meta:
-  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_22k_val.json
+  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data/dev_clean_processed.json
   sample_weight: 1.0
-  audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
+  audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data
   audio_tar_filepaths: []
 
 log_ds_meta:
