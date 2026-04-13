@@ -99,7 +99,7 @@ model:
     dataset:
       _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
       sample_rate: ${sample_rate}
-      n_samples: null
+      n_samples: 20
       min_duration: null
       max_duration: null
       trunc_duration: 10.0 # Only use the first 10 seconds of audio for computing validation loss
