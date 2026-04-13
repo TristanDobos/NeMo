@@ -31,7 +31,7 @@ down_sample_rates: [2, 3, 6, 7, 7]
 
 num_codebooks: 4
 codebook_levels: [9, 8, 8, 7]
-encoder_out_dim: 32
+dims: 16
 
 model:
   freeze_audio_encoder_and_vector_quantizer: false
@@ -143,14 +143,14 @@ model:
   audio_encoder:
     _target_: nemo.collections.tts.modules.audio_codec_modules.HiFiGANEncoder
     down_sample_rates: ${down_sample_rates}
-    encoded_dim: 16
+    encoded_dim: ${dims}
     base_channels: 24
     activation: lrelu
     pad_mode: replicate
   audio_decoder:
     _target_: nemo.collections.tts.modules.audio_codec_modules.CausalHiFiGANDecoder
     up_sample_rates: ${up_sample_rates}
-    input_dim: 16
+    input_dim: ${dims}
     base_channels: 864
     activation: half_snake
     output_activation: clamp
