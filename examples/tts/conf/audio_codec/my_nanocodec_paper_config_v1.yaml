@@ -12,9 +12,9 @@ train_ds_meta:
   audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
 val_ds_meta:
-  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data/dev_clean_processed.json
+  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_22k_val.json
   sample_weight: 1.0
-  audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data
+  audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
 
 log_ds_meta:
@@ -99,7 +99,7 @@ model:
     dataset:
       _target_: nemo.collections.tts.data.vocoder_dataset.VocoderDataset
       sample_rate: ${sample_rate}
-      n_samples: 20
+      n_samples: null
       min_duration: null
       max_duration: null
       trunc_duration: 10.0 # Only use the first 10 seconds of audio for computing validation loss
