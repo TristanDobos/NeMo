@@ -206,7 +206,7 @@ trainer:
   benchmark: false
 
 exp_manager:
-  exp_dir: /mnt/matylda6/xdobos00/NeMo/exp
+  exp_dir: /mnt/scratch/tmp/xdobos00/Nemo/exp
   name: ${name}
   create_tensorboard_logger: true
   create_checkpoint_callback: true
@@ -215,7 +215,7 @@ exp_manager:
     mode: offline
     name: ${name}
     project: paper-hundred-training-w-metrics-w-pesq
-    save_dir: /homes/eva/xd/xdobos00/.wandb_osh_command_dir
+    save_dir: /mnt/scratch/tmp/xdobos00/.wandb_osh_command_dir
   checkpoint_callback_params:
     monitor: val_loss
     mode: min
