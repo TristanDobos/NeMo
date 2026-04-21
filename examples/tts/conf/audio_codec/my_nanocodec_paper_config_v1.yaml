@@ -4,21 +4,23 @@ max_epochs: 200
 batch_size: 8
 weighted_sampling_steps_per_epoch: null
 
+# validation path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data/small_val_manifest.json
+
 log_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/logs
 
 train_ds_meta:
-  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_22k_train.json
+  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_16000_flat.json
   sample_weight: 1.0
   audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
 val_ds_meta:
-  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_22k_val.json
+  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data/small_val_manifest_nemo.json
   sample_weight: 1.0
-  audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
+  audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data
   audio_tar_filepaths: []
 
 log_ds_meta:
-  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_22k_train.json
+  manifest_path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100/librispeech_16000_flat.json
   sample_weight: 1.0
   audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
