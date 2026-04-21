@@ -23,7 +23,7 @@ log_ds_meta:
   audio_dir: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data-100
   audio_tar_filepaths: []
 
-sample_rate: 22050
+sample_rate: 16000
 samples_per_frame: 1764
 train_n_samples: 24576
 up_sample_rates: [7, 7, 6, 3, 2]
@@ -80,7 +80,7 @@ model:
           # cv:
           #   manifest_path: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/tarred_audio/train_manifest.json
           #   tar_filepath: /lustre/fsw/portfolios/llmservice/projects/llmservice_nemo_speechlm/data/TTS/commonvoice13/22khz/tarred_audio/audio_{0..279}.tar
-      sample_rate: 22050
+      sample_rate: 16000
       n_samples: 24696
       min_duration: 0.4
       max_duration: null
