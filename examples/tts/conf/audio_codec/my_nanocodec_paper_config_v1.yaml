@@ -1,7 +1,7 @@
 name: NanoCodecWithMetricsWPesqPaper
 
 max_epochs: 200
-batch_size: 8
+batch_size: 4
 weighted_sampling_steps_per_epoch: null
 
 # validation path: /mnt/matylda6/xdobos00/NeMo-old/scripts/dataset_processing/data/small_val_manifest.json
@@ -115,7 +115,7 @@ model:
           sample_weight: ${val_ds_meta.sample_weight}
           audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
     dataloader_params:
-      batch_size: 4
+      batch_size: ${batch_size}
       num_workers: 2
   log_config:
     log_dir: ${log_dir}
@@ -142,7 +142,7 @@ model:
           sample_weight: ${val_ds_meta.sample_weight}
           audio_tar_filepaths: ${val_ds_meta.audio_tar_filepaths}
     dataloader_params:
-      batch_size: 4
+      batch_size: ${batch_size}
       num_workers: 2
   audio_encoder:
     _target_: nemo.collections.tts.modules.audio_codec_modules.HiFiGANEncoder
