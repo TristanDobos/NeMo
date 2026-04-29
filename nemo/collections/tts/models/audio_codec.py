@@ -377,7 +377,6 @@ class AudioCodecModel(ModelPT):
             raise ValueError("Cannot quantize without quantizer")
 
         # vector quantizer is returning [C, B, T], where C is the number of codebooks
-        adafas
         tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
         # use batch first for the output
         tokens = rearrange(tokens, 'C B T -> B C T')
@@ -529,7 +528,6 @@ class AudioCodecModel(ModelPT):
         """
 
         self.eval()
-        adfdvxcxccvx
         tokens, tokens_len = self.encode(
             audio=audio,
             audio_len=audio_len,
@@ -565,13 +563,36 @@ class AudioCodecModel(ModelPT):
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
         # Apply quantizer to obtain discrete representation per frame
         tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
-        axcvxcvx
         entropy_metrics = self.compute_codebook_entropy_from_tokens(
             tokens=tokens,
             tokens_len=encoded_len,
         )
-        print("entropy_metrics are")
-        print(entropy_metrics)
+        
+        logging.info("here we are")
+        if entropy_metrics is not None:
+            logging.info("Codebook entropy metrics:")
+
+            num_codebooks = self.vector_quantizer.num_codebooks
+            codebook_size = self.vector_quantizer.codebook_size
+
+            for c in range(num_codebooks):
+                logging.info(
+                    f"  Codebook {c}: "
+                    f"used={entropy_metrics[f'codebook_{c}_used_codes']:.0f}/{codebook_size}, "
+                    f"utilization={entropy_metrics[f'codebook_{c}_utilization'] * 100:.2f}%, "
+                    f"entropy={entropy_metrics[f'codebook_{c}_entropy_bits']:.3f} bits, "
+                    f"norm_entropy={entropy_metrics[f'codebook_{c}_normalized_entropy'] * 100:.2f}%, "
+                    f"perplexity={entropy_metrics[f'codebook_{c}_perplexity']:.2f}, "
+                    f"norm_perplexity={entropy_metrics[f'codebook_{c}_normalized_perplexity'] * 100:.2f}%"
+                )
+
+            logging.info(
+                "  Average: "
+                f"utilization={entropy_metrics['avg_codebook_utilization'] * 100:.2f}%, "
+                f"entropy={entropy_metrics['avg_codebook_entropy_bits']:.3f} bits, "
+                f"norm_entropy={entropy_metrics['avg_normalized_codebook_entropy'] * 100:.2f}%, "
+                f"norm_perplexity={entropy_metrics['avg_normalized_codebook_perplexity'] * 100:.2f}%"
+            )
 
         return tokens, encoded_len
 
