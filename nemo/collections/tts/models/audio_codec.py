@@ -409,6 +409,136 @@ class AudioCodecModel(ModelPT):
         dequantized = self.vector_quantizer.decode(indices=tokens, input_len=tokens_len)
         return dequantized
 
+    @torch.no_grad()
+    def compute_codebook_entropy_from_tokens(
+        self,
+        tokens: torch.Tensor,
+        tokens_len: torch.Tensor,
+    ):
+        """
+        Compute codebook entropy from discrete tokens.
+
+        Args:
+            tokens: [B, C, T_encoded]
+            tokens_len: [B]
+
+        Returns:
+            Dictionary with entropy, normalized entropy, perplexity,
+            and utilization per codebook.
+        """
+        if self.vector_quantizer is None:
+            raise ValueError("Cannot compute codebook entropy without vector_quantizer.")
+
+        B, C, T = tokens.shape
+        device = tokens.device
+
+        codebook_size = self.vector_quantizer.codebook_size
+
+        log_2 = torch.log(torch.tensor(2.0, device=device))
+        max_entropy_nats = torch.log(torch.tensor(float(codebook_size), device=device))
+
+        metrics = {}
+
+        for c in range(C):
+            valid_ids = []
+
+            for b in range(B):
+                length = int(tokens_len[b].item())
+                valid_ids.append(tokens[b, c, :length])
+
+            valid_ids = torch.cat(valid_ids).long()
+
+            # Safety check
+            valid_ids = valid_ids[
+                (valid_ids >= 0) & (valid_ids < codebook_size)
+            ]
+
+            if valid_ids.numel() == 0:
+                metrics[f"codebook_{c}_used_codes"] = 0.0
+                metrics[f"codebook_{c}_utilization"] = 0.0
+                metrics[f"codebook_{c}_entropy_bits"] = 0.0
+                metrics[f"codebook_{c}_normalized_entropy"] = 0.0
+                metrics[f"codebook_{c}_perplexity"] = 0.0
+                metrics[f"codebook_{c}_normalized_perplexity"] = 0.0
+                continue
+
+            counts = torch.bincount(
+                valid_ids,
+                minlength=codebook_size,
+            ).float()
+
+            probs = counts / counts.sum().clamp_min(1.0)
+            nonzero_probs = probs[probs > 0]
+
+            entropy_nats = -torch.sum(nonzero_probs * torch.log(nonzero_probs))
+            entropy_bits = entropy_nats / log_2
+
+            normalized_entropy = entropy_nats / max_entropy_nats
+
+            perplexity = torch.exp(entropy_nats)
+            normalized_perplexity = perplexity / codebook_size
+
+            used_codes = torch.sum(counts > 0).float()
+            utilization = used_codes / codebook_size
+
+            metrics[f"codebook_{c}_used_codes"] = used_codes.item()
+            metrics[f"codebook_{c}_utilization"] = utilization.item()
+            metrics[f"codebook_{c}_entropy_bits"] = entropy_bits.item()
+            metrics[f"codebook_{c}_normalized_entropy"] = normalized_entropy.item()
+            metrics[f"codebook_{c}_perplexity"] = perplexity.item()
+            metrics[f"codebook_{c}_normalized_perplexity"] = normalized_perplexity.item()
+
+        metrics["avg_codebook_utilization"] = sum(
+            metrics[f"codebook_{c}_utilization"]
+            for c in range(C)
+        ) / C
+
+        metrics["avg_codebook_entropy_bits"] = sum(
+            metrics[f"codebook_{c}_entropy_bits"]
+            for c in range(C)
+        ) / C
+
+        metrics["avg_normalized_codebook_entropy"] = sum(
+            metrics[f"codebook_{c}_normalized_entropy"]
+            for c in range(C)
+        ) / C
+
+        metrics["avg_normalized_codebook_perplexity"] = sum(
+            metrics[f"codebook_{c}_normalized_perplexity"]
+            for c in range(C)
+        ) / C
+
+        return metrics
+    
+    @torch.no_grad()
+    def compute_codebook_entropy(
+        self,
+        audio: torch.Tensor,
+        audio_len: torch.Tensor,
+    ):
+        """
+        Encode audio and compute codebook entropy/utilization.
+
+        Args:
+            audio: [B, T_audio]
+            audio_len: [B]
+
+        Returns:
+            Dictionary with entropy/utilization metrics.
+        """
+
+        self.eval()
+
+        tokens, tokens_len = self.encode(
+            audio=audio,
+            audio_len=audio_len,
+        )
+
+        return self.compute_codebook_entropy_from_tokens(
+            tokens=tokens,
+            tokens_len=tokens_len,
+        )
+
     @typecheck(
         input_types={
             "audio": NeuralType(('B', 'T_audio'), AudioSignal()),
@@ -434,6 +564,14 @@ class AudioCodecModel(ModelPT):
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
         # Apply quantizer to obtain discrete representation per frame
         tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
+
+        entropy_metrics = self.compute_codebook_entropy_from_tokens(
+            tokens=tokens,
+            tokens_len=encoded_len,
+        )
+        print("entropy_metrics are")
+        print(entropy_metrics)
+
         return tokens, encoded_len
 
     @typecheck(
