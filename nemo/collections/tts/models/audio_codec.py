@@ -377,6 +377,7 @@ class AudioCodecModel(ModelPT):
             raise ValueError("Cannot quantize without quantizer")
 
         # vector quantizer is returning [C, B, T], where C is the number of codebooks
+        adafas
         tokens = self.vector_quantizer.encode(inputs=encoded, input_len=encoded_len)
         # use batch first for the output
         tokens = rearrange(tokens, 'C B T -> B C T')
@@ -528,7 +529,7 @@ class AudioCodecModel(ModelPT):
         """
 
         self.eval()
-
+        adfdvxcxccvx
         tokens, tokens_len = self.encode(
             audio=audio,
             audio_len=audio_len,
@@ -564,7 +565,7 @@ class AudioCodecModel(ModelPT):
         encoded, encoded_len = self.encode_audio(audio=audio, audio_len=audio_len)
         # Apply quantizer to obtain discrete representation per frame
         tokens = self.quantize(encoded=encoded, encoded_len=encoded_len)
-
+        axcvxcvx
         entropy_metrics = self.compute_codebook_entropy_from_tokens(
             tokens=tokens,
             tokens_len=encoded_len,
