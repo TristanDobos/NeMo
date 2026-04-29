@@ -105,10 +105,10 @@ class AudioCodecModel(ModelPT):
 
             if len(vq_output_types) == 3 and vq_output_types[-1] == 'commit_loss':
                 self.vector_quantizer_has_commit_loss = True
-                logging.info('Vector quantizer supports commit loss.')
+                logging.info('Vector quantizer supports commit loss!')
             else:
                 self.vector_quantizer_has_commit_loss = False
-                logging.info('Vector quantizer does not support commit loss.')
+                logging.info('Vector quantizer does not support commit loss!')
 
         else:
             logging.warning('Vector quantizer will not be used.')
@@ -567,7 +567,7 @@ class AudioCodecModel(ModelPT):
             tokens=tokens,
             tokens_len=encoded_len,
         )
-        
+
         logging.info("here we are")
         if entropy_metrics is not None:
             logging.info("Codebook entropy metrics:")
